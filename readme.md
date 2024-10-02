@@ -11,7 +11,7 @@
               func => FN IDENT LPAREN param* RPAREN (R_LARR type)? func-body
         type-alias => TYPE IDENT EQUAL type NEWLINE
             struct => STRUCT IDENT LBRACE (field (COMMA field)* COMMA?)? RBRACE
-              enum => ENUM IDENT LBRACE (variant (COMMA variant)* COMMA?)? RBRACE
+              enum => ENUM IDENT LBRACE (IDENT (COMMA IDENT)* COMMA?)? RBRACE
           constant => CONST IDENT COLON type EQUAL expr NEWLINE
             static => STATIC IDENT COLON type EQUAL expr NEWLINE
  
@@ -23,7 +23,7 @@
 
              param => MUT? IDENT COLON type
              field => IDENT COLON type
- 
+
          func-body => block-expr | NEWLINE
               stmt => item
                     | let-stmt
@@ -31,7 +31,7 @@
                     | continue-stmt
                     | break-stmt
  
-          let-stmt => LET IDENT COLON type EQUAL expr NEWLINE
+          let-stmt => LET MUT? IDENT COLON type EQUAL expr NEWLINE
          expr-stmt => expr-without-block NEWLINE
                     | expr-with-block NEWLINE?
      continue-stmt => CONTINUE NEWLINE
@@ -58,7 +58,6 @@ expr-without-block => literal-expr
       literal-expr => CHAR_LITERAL
                     | STRING_LITERAL
                     | INTEGER_LITERAL
-                    | FLOAT_LITERAL
                     | TRUE
                     | FALSE
          path-expr => COLON2? IDENT (COLON2 IDENT)*
