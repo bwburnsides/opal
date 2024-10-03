@@ -1,97 +1,80 @@
-#[derive(Clone)]
-pub enum Keyword {
+use crate::stream::EndMarked;
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum OpalKeyword {
     Fn,
     Type,
     Struct,
     Enum,
-    Const,
     Static,
-    Continue,
-    Break,
-    True,
-    False,
-    Return,
+    Const,
     If,
-    Else,
-    When,
-    Is,
-    Mut,
-    In,
 }
 
-#[derive(Clone)]
-pub enum Literal {
-    Char(char),
-    String(String),
-    Integer(usize),
-    True,
-    False,
+impl std::fmt::Display for OpalKeyword {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use OpalKeyword::*;
+
+        match self {
+            Fn => write!(f, "fn"),
+            Type => write!(f, "type"),
+            Struct => write!(f, "struct"),
+            Enum => write!(f, "enum"),
+            Static => write!(f, "static"),
+            Const => write!(f, "const"),
+            If => write!(f, "if"),
+        }
+    }
 }
 
-#[derive(Clone)]
-pub enum Basic {
-    LParen,
-    RParen,
+#[derive(Debug, PartialEq, Clone)]
+pub enum OpalBasic {
     LBrace,
     RBrace,
-    LBrack,
-    RBrack,
-
-    Hyphen,
-    RLightArrow,
-    HyphenEqual,
-
-    Equal,
-    Equal2,
-    RHeavyArrow,
-
-    Newline,
     Comma,
-    Semicolon,
-    Question,
-    Period,
-
-    Exclamation,
-    ExclamationEqual,
-
-    Colon,
-    Colon2,
-
-    Bar,
-    Bar2,
-    BarEqual,
-
-    Plus,
-    PlusEqual,
-
-    Ampersand,
-    Ampersand2,
-    AmpersandEqual,
-
-    Asterisk,
-    AsteriskEqual,
-
-    FSlash,
-    FSlashEqual,
-
-    LAngle,
-    LAngle2,
-    LAngleEqual,
-
-    LAngle2Equal,
-
-    RAngle,
-    RAngle2,
-    RAngleEqual,
-
-    RAngle2Equal,
+    LParen,
+    RParen,
+    LightRArrow,
 }
 
-#[derive(Clone)]
+impl std::fmt::Display for OpalBasic {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use OpalBasic::*;
+
+        match self {
+            LBrace => write!(f, "{{"),
+            RBrace => write!(f, "}}"),
+            Comma => write!(f, ","),
+            LParen => write!(f, "("),
+            RParen => write!(f, ")"),
+            LightRArrow => write!(f, "->"),
+        }
+    }
+}
+
+pub struct OpalIdentifier;
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Token {
-    Keyword(Keyword),
-    Literal(Literal),
-    Ident(String),
-    Basic(Basic),
-    Poison,
+    Keyword(OpalKeyword),
+    Identifier(String),
+    Basic(OpalBasic),
+    Eof,
+}
+
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use Token::*;
+
+        match self {
+            Keyword(kw) => write!(f, "keyword `{}`", kw),
+            Identifier(name) => write!(f, "identifier \"{}\"", name),
+            Basic(basic) => write!(f, "token \"{}\"", basic),
+            Eof => write!(f, "end of file"),
+        }
+    }
+}
+
+impl EndMarked for Token {
+    const END: Self = Token::Eof;
 }

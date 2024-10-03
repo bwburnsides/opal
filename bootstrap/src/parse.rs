@@ -1,168 +1,362 @@
-#[derive(PartialEq, Clone)]
-enum OpalKeyword {
-    Fn,
-    Type,
-    Struct,
-    Enum,
-    Static,
-    Const,
-}
+use std::fmt::Display;
 
-#[derive(PartialEq, Clone)]
-enum OpalBasic {
-    LBrace,
-    RBrace,
-    Comma,
-}
+use crate::model::*;
+use crate::stream::{PeekFor, Stream};
 
-#[derive(PartialEq, Clone)]
-enum Token {
-    Keyword(OpalKeyword),
-    Identifier(String),
-    Basic(OpalBasic),
-}
-
-struct Stream<T> {
-    items: Vec<T>,
-    position: usize,
-}
-
-impl<T: Clone> Stream<T> {
-    fn new() -> Self {
-        Self {
-            items: Vec::new(),
-            position: 0,
-        }
-    }
-
-    fn peek(&self) -> Option<&T> {
-        self.items.get(self.position)
-    }
-
-    fn pop(self) -> (Option<T>, Self) {
+impl PeekFor<OpalBasic, ParseResult<Token>> for Stream<Token> {
+    fn peek_for<S: Into<String> + Display>(
+        &mut self,
+        kind: OpalBasic,
+        error: S,
+    ) -> ParseResult<Token> {
         match self.peek() {
-            None => (None, self),
-            Some(item) => (Some(item.clone()), self.advance()),
-        }
-    }
-
-    fn advance(self) -> Self {
-        Self {
-            items: self.items,
-            position: self.position + 1,
+            Token::Basic(kind) => Ok(self.pop()),
+            otherwise => Err(format!("{} but found {} instead", error, otherwise)),
         }
     }
 }
 
-type Jewel = Vec<Item>;
-
-struct FunctionItem {}
-struct TypeAliasItem {}
-struct StructItem {}
-struct EnumItem {}
-struct StaticItem {}
-struct ConstItem {}
-
-enum Item {
-    Function(FunctionItem),
-    TypeAlias(TypeAliasItem),
-    Struct(StructItem),
-    Enum(EnumItem),
-    Const(ConstItem),
-    Static(StaticItem),
-}
-
-enum ParseResult<T> {
-    Match(T, Stream<Token>),
-    Error,
-}
-
-impl<T> ParseResult<T> {
-    fn map<U, F>(self, mapper: F) -> ParseResult<U>
-    where
-        F: Fn(T) -> U,
-    {
-        todo!()
+impl PeekFor<OpalKeyword, ParseResult<Token>> for Stream<Token> {
+    fn peek_for<S: Into<String> + Display>(
+        &mut self,
+        kind: OpalKeyword,
+        error: S,
+    ) -> ParseResult<Token> {
+        match self.peek() {
+            Token::Keyword(kind) => Ok(self.pop()),
+            otherwise => Err(format!("{} but found {} instead", error, otherwise)),
+        }
     }
 }
 
-fn parse_function() -> ParseResult<FunctionItem> {
-    todo!()
+impl PeekFor<OpalIdentifier, ParseResult<String>> for Stream<Token> {
+    fn peek_for<S: Into<String> + Display>(
+        &mut self,
+        kind: OpalIdentifier,
+        error: S,
+    ) -> ParseResult<String> {
+        match self.peek() {
+            Token::Identifier(name) => {
+                self.pop();
+                Ok(name)
+            }
+            otherwise => Err(format!("{} but found {} instead", error, otherwise)),
+        }
+    }
 }
 
-fn parse_type_alias() -> ParseResult<TypeAliasItem> {
-    todo!()
+type ParseResult<T> = Result<T, String>;
+
+pub fn jewel(tokens: &mut Stream<Token>) -> ParseResult<Jewel> {
+    // <jewel> |= <item> <jewel> $
+    //         |  $
+
+    match tokens.peek() {
+        Token::Eof => return Ok(Vec::new()),
+        otherwise => {
+            let it = item(tokens)?;
+            let mut items = jewel(tokens)?;
+            items.insert(0, it);
+            Ok(items)
+        }
+    }
 }
 
-fn parse_struct() -> ParseResult<StructItem> {
-    todo!()
-}
+fn item(tokens: &mut Stream<Token>) -> ParseResult<Item> {
+    // <item> |= <function>
+    //        |  <type-alias>
+    //        |  <struct>
+    //        |  <enum>
+    //        |  <static>
+    //        |  <const>
 
-fn parse_enum(tokens: Stream<Token>) -> ParseResult<EnumItem> {
-    use OpalBasic::*;
-    use OpalKeyword::*;
-    use Token::*;
-
-    let (keyword, remaining) = match tokens.peek() {
-        None => return ParseResult::Error,
-        Some(Keyword(Enum)) => tokens.pop(),
-        Some(other_token) => return ParseResult::Error,
-    };
-
-    let (identifier, remaining) = match remaining.peek() {
-        None => return ParseResult::Error,
-        Some(Identifier(_)) => remaining.pop(),
-        Some(other_token) => return ParseResult::Error,
-    };
-
-    todo!()
-}
-
-fn parse_static() -> ParseResult<StaticItem> {
-    todo!()
-}
-
-fn parse_const() -> ParseResult<ConstItem> {
-    todo!()
-}
-
-fn parse_item(tokens: Stream<Token>) -> ParseResult<Item> {
     use OpalKeyword::*;
     use Token::*;
 
     match tokens.peek() {
-        None => ParseResult::Error,
-        Some(token) => match token {
-            Keyword(Fn) => parse_function().map(Item::Function),
-            Keyword(Type) => parse_type_alias().map(Item::TypeAlias),
-            Keyword(Struct) => parse_struct().map(Item::Struct),
-            Keyword(Enum) => parse_enum(tokens).map(Item::Enum),
-            Keyword(Static) => parse_static().map(Item::Static),
-            Keyword(Const) => parse_const().map(Item::Const),
-            _ => ParseResult::Error,
-        },
+        Keyword(Fn) => function(tokens).map(Item::Function),
+        Keyword(Type) => type_alias().map(Item::TypeAlias),
+        Keyword(Struct) => struct_item(tokens).map(Item::Struct),
+        Keyword(Enum) => enum_item(tokens).map(Item::Enum),
+        Keyword(Static) => static_item().map(Item::Static),
+        Keyword(Const) => const_item().map(Item::Constant),
+        otherwise => Err(format!(
+            "Expected to find item definition beginning with keyword {} but found {} instead",
+            "`fn`, `type`, `struct`, `enum`, `static`, or `const`", otherwise,
+        )),
     }
 }
 
-fn parse_jewel(tokens: Stream<Token>) -> ParseResult<Jewel> {
-    let mut items = Vec::new();
-    let mut remaining = tokens;
+fn function(tokens: &mut Stream<Token>) -> ParseResult<FunctionItem> {
+    // <function> |= FN IDENT LPAREN <param-list> RPAREN <opt-return> <block-expr>
 
-    loop {
-        match remaining.peek() {
-            None => return ParseResult::Match(items, remaining),
-            Some(_) => match parse_item(remaining) {
-                ParseResult::Match(item, rem) => {
-                    items.push(item);
-                    remaining = rem;
-                }
-                ParseResult::Error => return ParseResult::Error,
-            },
+    use OpalBasic::*;
+    use OpalKeyword::*;
+    use Token::*;
+
+    let keyword = tokens.peek_for(
+        Fn,
+        format!(
+            "Expected to find function definition beginning with {}",
+            Keyword(Fn)
+        ),
+    )?;
+
+    let name = tokens.peek_for(
+        OpalIdentifier,
+        format!(
+            "Expected to find function definition's identifier after {}",
+            Keyword(Fn)
+        ),
+    )?;
+
+    tokens.peek_for(
+        LParen,
+        format!(
+            "Expected to find {} following function identifier \"{}\"",
+            Basic(LParen),
+            name
+        ),
+    )?;
+
+    let param_list = param_list(tokens)?;
+
+    tokens.peek_for(
+        RParen,
+        format!(
+            "Expected to find '{}' following function \"{}\"'s parameter list",
+            Basic(RParen),
+            name
+        ),
+    )?;
+
+    let return_type = opt_return(tokens)?;
+
+    let body = block_expression(tokens)?;
+
+    Ok(FunctionItem::new(name, param_list, return_type, body))
+}
+
+fn enum_item(tokens: &mut Stream<Token>) -> ParseResult<EnumItem> {
+    // <enum> |= ENUM IDENT LBRACE <enum-members> RBRACE
+
+    use OpalBasic::*;
+    use OpalKeyword::*;
+    use Token::*;
+
+    let keyword = match tokens.peek() {
+        Keyword(Enum) => tokens.pop(),
+        otherwise => {
+            return Err(format!(
+                "Expected to find enum definition beginning with {} but found {} instead",
+                Keyword(Enum),
+                otherwise
+            ))
+        }
+    };
+
+    let identifier = match tokens.peek() {
+        Identifier(name) => {
+            tokens.pop();
+            name.clone()
+        }
+        otherwise => {
+            return Err(format!(
+                "Expected to find enum definition's identifier after {} but found {} instead",
+                Keyword(Enum),
+                otherwise
+            ))
+        }
+    };
+
+    match tokens.peek() {
+        Basic(LBrace) => tokens.pop(),
+        otherwise => {
+            return Err(format!(
+                "Expected to find {} following enum identifier {} but found {} instead",
+                Basic(LBrace),
+                identifier,
+                otherwise
+            ))
+        }
+    };
+
+    let members = enum_members(tokens)?;
+
+    match tokens.peek() {
+        Basic(RBrace) => {
+            tokens.pop();
+            Ok(EnumItem::new(identifier, members))
+        }
+        otherwise => Err(format!(
+            "Expected to find {} to conclude enum definition but found {} instead",
+            Basic(RBrace),
+            otherwise
+        )),
+    }
+}
+
+fn static_item() -> ParseResult<StaticItem> {
+    todo!()
+}
+
+fn const_item() -> ParseResult<ConstItem> {
+    todo!()
+}
+
+fn struct_item(tokens: &mut Stream<Token>) -> ParseResult<StructItem> {
+    // <struct> |= STRUCT IDENT LBRACE <struct-members> RBRACE
+
+    use OpalBasic::*;
+    use OpalKeyword::*;
+    use Token::*;
+
+    let keyword = match tokens.peek() {
+        Keyword(Struct) => tokens.pop(),
+        otherwise => {
+            return Err(format!(
+                "Expected to find struct definition beginning with {} but found {} instead",
+                Keyword(Struct),
+                otherwise
+            ))
+        }
+    };
+
+    let identifier = peek_identifier(
+        tokens,
+        "struct definition's identifier",
+        Keyword(Struct).to_string(),
+    )?;
+
+    let _ = tokens.peek_for(
+        LBrace,
+        format!(
+            "Expected {} following struct identifier \"{}\"",
+            LBrace, identifier
+        ),
+    )?;
+
+    let fields = struct_fields(tokens)?;
+
+    let rbrace = tokens.peek_for(
+        RBrace,
+        format!("Expected '{}' following struct definition", RBrace),
+    )?;
+
+    Ok(StructItem::new(identifier, fields))
+}
+
+fn type_alias() -> ParseResult<TypeAliasItem> {
+    todo!()
+}
+
+fn block_expression(tokens: &mut Stream<Token>) -> ParseResult<BlockExpression> {
+    todo!()
+}
+
+fn type_repr(tokens: &mut Stream<Token>) -> ParseResult<TypeRepr> {
+    todo!()
+}
+
+fn opt_return(tokens: &mut Stream<Token>) -> ParseResult<Option<TypeRepr>> {
+    // <opt-return> |= LIGHT_RARROW <type-repr>
+    //              |  EPSILON
+
+    use OpalBasic::*;
+    use OpalKeyword::*;
+    use Token::*;
+
+    match tokens.peek() {
+        Basic(LightRArrow) => {
+            tokens.pop();
+            match type_repr(tokens) {
+                Ok(type_repr) => Ok(Some(type_repr)),
+                Err(err) => Err(err),
+            }
+        }
+        epsilon => Ok(None),
+    }
+}
+
+fn param_list(tokens: &mut Stream<Token>) -> ParseResult<Vec<Parameter>> {
+    todo!()
+}
+
+fn struct_fields(tokens: &mut Stream<Token>) -> ParseResult<Vec<Field>> {
+    todo!()
+}
+
+fn peek_identifier<S1: Into<String> + Display, S2: Into<String> + Display>(
+    tokens: &mut Stream<Token>,
+    expected_to_find: S1,
+    found_after: S2,
+) -> ParseResult<String> {
+    match tokens.peek() {
+        Token::Identifier(name) => {
+            tokens.pop();
+            Ok(name.clone())
+        }
+        otherwise => Err(format!(
+            "Expected to find {} after {} but found {} instead",
+            expected_to_find, found_after, otherwise
+        )),
+    }
+}
+
+fn peek_basic<S: Into<String> + Display>(
+    tokens: &mut Stream<Token>,
+    basic: OpalBasic,
+    error: S,
+) -> ParseResult<Token> {
+    match tokens.peek() {
+        Token::Basic(basic) => Ok(tokens.pop()),
+        otherwise => Err(format!(
+            "Expected to find {} {} but found {} instead",
+            Token::Basic(basic),
+            error,
+            otherwise
+        )),
+    }
+}
+
+fn enum_members(tokens: &mut Stream<Token>) -> ParseResult<Vec<String>> {
+    // <enum-members> |= IDENT <enum-members-tail>
+    //                |  EPSILON
+
+    use OpalBasic::*;
+    use OpalKeyword::*;
+    use Token::*;
+
+    fn enum_members_tail(tokens: &mut Stream<Token>) -> ParseResult<Vec<String>> {
+        // <enum-members-tail> |= COMMA <enum-members>
+        //                     |  EPSILON
+
+        match tokens.peek() {
+            Basic(Comma) => {
+                tokens.pop();
+                enum_members(tokens)
+            }
+            epsilon => Ok(Vec::new()),
         }
     }
-}
 
-fn main() {
-    let tokens = Stream::<Token>::new();
-    parse_jewel(tokens);
+    let mut names = Vec::new();
+
+    let name = match tokens.peek() {
+        Identifier(name) => {
+            tokens.pop();
+            name.clone()
+        }
+        epsilon => return Ok(names),
+    };
+
+    names.push(name.clone());
+
+    match enum_members_tail(tokens) {
+        Ok(tail) => {
+            names.extend(tail);
+            Ok(names)
+        }
+        Err(err) => Err(err),
+    }
 }

@@ -1,13 +1,29 @@
 use either::Either;
 
-pub type ModuleItem = Vec<Item>;
+pub type Jewel = Vec<Item>;
 
 #[derive(Debug)]
 pub struct FunctionItem {
     name: String,
     parameters: Vec<Parameter>,
     return_type: Option<TypeRepr>,
-    body: Option<BlockExpression>,
+    body: BlockExpression,
+}
+
+impl FunctionItem {
+    pub fn new(
+        name: String,
+        parameters: Vec<Parameter>,
+        return_type: Option<TypeRepr>,
+        body: BlockExpression,
+    ) -> Self {
+        Self {
+            name: name,
+            parameters: parameters,
+            return_type: return_type,
+            body: body,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -22,14 +38,32 @@ pub struct StructItem {
     fields: Vec<Field>,
 }
 
+impl StructItem {
+    pub fn new(name: String, fields: Vec<Field>) -> Self {
+        Self {
+            name: name,
+            fields: fields,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct EnumItem {
     name: String,
     variants: Vec<String>,
 }
 
+impl EnumItem {
+    pub fn new(name: String, variants: Vec<String>) -> Self {
+        Self {
+            name: name,
+            variants: variants,
+        }
+    }
+}
+
 #[derive(Debug)]
-pub struct ConstantItem {
+pub struct ConstItem {
     name: String,
     ty: TypeRepr,
     value: Expression,
@@ -44,12 +78,12 @@ pub struct StaticItem {
 
 #[derive(Debug)]
 pub enum Item {
-    Module(ModuleItem),
-    Func(FunctionItem),
+    // Module(ModuleItem),
+    Function(FunctionItem),
     TypeAlias(TypeAliasItem),
     Struct(StructItem),
     Enum(EnumItem),
-    Constant(ConstantItem),
+    Constant(ConstItem),
     Static(StaticItem),
 }
 
