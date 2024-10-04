@@ -200,19 +200,19 @@ pub enum CompoundAssignmentOperator {
 
 #[derive(Debug)]
 pub enum OperatorExpression {
-    Borrow(bool, Box<Expression>),
-    Dereference(Box<Expression>),
-    ErrorPropagation(Box<Expression>),
-    Negation(NegateOperator, Box<Expression>),
-    ArithmeticOrLogical(
+    /* & */      Borrow(bool, Box<Expression>),
+    /* * */      Dereference(Box<Expression>),
+    /* expr */   ErrorPropagation(Box<Expression>),
+    /* - OR ! */ Negation(NegateOperator, Box<Expression>),
+    /* expr */   ArithmeticOrLogical(
         Box<Expression>,
         ArithmeticOrLogicalOperator,
         Box<Expression>,
     ),
-    Comparison(Box<Expression>, ComparisonOperator, Box<Expression>),
-    LazyBoolean(Box<Expression>, LazyBooleanOperator, Box<Expression>),
-    Assignment(Box<Expression>, Box<Expression>),
-    CompoundAssignment(Box<Expression>, CompoundAssignmentOperator, Box<Expression>),
+    /* expr */   Comparison(Box<Expression>, ComparisonOperator, Box<Expression>),
+    /* expr */   LazyBoolean(Box<Expression>, LazyBooleanOperator, Box<Expression>),
+    /* expr */   Assignment(Box<Expression>, Box<Expression>),
+    /* expr */   CompoundAssignment(Box<Expression>, CompoundAssignmentOperator, Box<Expression>),
 }
 
 #[derive(Debug)]
@@ -220,12 +220,12 @@ pub enum ExpressionWithoutBlock {
     Literal(LiteralExpression),
     Path(bool, Vec<String>),
     Operator(OperatorExpression),
-    Grouped(Box<Expression>),
-    Array(Vec<Box<Expression>>),
-    Index(Box<Expression>, Box<Expression>),
-    Call(Box<Expression>, Vec<Box<Expression>>),
-    Field(Box<Expression>, String),
-    Return(Option<Box<Expression>>),
+    /* ( */      Grouped(Box<Expression>),
+    /* [ */      Array(Vec<Box<Expression>>),
+    /* expr */   Index(Box<Expression>, Box<Expression>),
+    /* expr */   Call(Box<Expression>, Vec<Box<Expression>>),
+    /* expr */   Field(Box<Expression>, String),
+    /* return */ Return(Option<Box<Expression>>),
 }
 
 pub type BlockExpression = Vec<Statement>;

@@ -41,3 +41,11 @@ impl<T: Clone, const N: usize> From<[T; N]> for Stream<T> {
         Self { items: items }
     }
 }
+
+impl<T> FromIterator<T> for Stream<T> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut items: Vec<_> = iter.into_iter().collect();
+        items.reverse();
+        Self { items: items }
+    }
+}

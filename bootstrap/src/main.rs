@@ -7,6 +7,7 @@ use std::fmt::Display;
 mod model;
 mod parse;
 mod stream;
+mod tokenize;
 
 use model::*;
 use stream::Stream;
@@ -19,18 +20,16 @@ enum BuiltinType {
 fn main() {
     use OpalBasic::*;
     use OpalKeyword::*;
+    use OpalLiteral::*;
     use Token::*;
 
-    let mut tokens = Stream::from([
-        Keyword(Enum),
-        Identifier(String::from("Foo")),
-        Basic(LBrace),
-        Basic(RBrace),
-        Keyword(Enum),
-        Identifier(String::from("Bar")),
-        Basic(LBrace),
-        Basic(RBrace),
-    ]);
+    let source = "enum Color {
+        Red,
+        Green,
+        Blue,
+    }";
+
+    let mut tokens = tokenize::tokenize(source).unwrap();
 
     match parse::jewel(&mut tokens) {
         Ok(item) => println!("{:?}", item),

@@ -222,10 +222,9 @@ fn struct_item(tokens: &mut Stream<Token>) -> ParseResult<StructItem> {
         }
     };
 
-    let identifier = peek_identifier(
-        tokens,
-        "struct definition's identifier",
-        Keyword(Struct).to_string(),
+    let identifier = tokens.peek_for(
+        OpalIdentifier,
+        "Expected to find struct definition's identifier",
     )?;
 
     let _ = tokens.peek_for(
@@ -250,7 +249,65 @@ fn type_alias() -> ParseResult<TypeAliasItem> {
     todo!()
 }
 
+fn expression(tokens: &mut Stream<Token>) -> ParseResult<Expression> {
+    // <expression> |= LBRACE <statements> RBRACE
+    //              |  IF <expression> <block-expression>
+    //              |  IF <expression> <block-expression> ELSE <block-expression>
+    //              |  IF <expression> <block-expression> ELSE <if-expression>
+    //              |  WHEN <expression> <...>
+    //              |  FOR <...>
+    //              |  WHILE <...>
+    //              |  CHAR-LIT
+    //              |  STR-LIT
+    //              |  INT-LIT
+    //              |  TRUE
+    //              |  FALSE
+    //              |  COLON2 IDENT <...>   // PathExpression
+    //              |  IDENT <...>          // PathExpression
+    
+}
+
 fn block_expression(tokens: &mut Stream<Token>) -> ParseResult<BlockExpression> {
+    // <block-expression> |= LBRACE <statements> RBRACE
+
+    use OpalBasic::*;
+    use OpalKeyword::*;
+    use Token::*;
+
+    let lbrace = tokens.peek_for(
+        LBrace,
+        format!("Expected to find {} to begin block expression", LBrace),
+    )?;
+
+    let statements = statements(tokens)?;
+
+    let rbrace = tokens.peek_for(
+        RBrace,
+        format!("Expected to find {} to begin block expression", RBrace),
+    )?;
+
+    Ok(BlockExpression::from(statements))
+}
+
+fn statements(tokens: &mut Stream<Token>) -> ParseResult<Vec<Statement>> {
+    // <statements> |= <statement> <statements>
+    //              |  EPSILON
+
+    use OpalBasic::*;
+    use OpalKeyword::*;
+    use Token::*;
+
+    match tokens.peek() {
+        Keyword(Let) => let_statement(tokens).map(Statement::Let)?,
+        Keyword(Continue) => Statement::Continue,
+        Keyword(Break) => Statement::Break,
+        _ => todo!()
+    };
+
+    todo!()
+}
+
+fn let_statement(tokens: &mut Stream<Token>) -> ParseResult<LetStatement> {
     todo!()
 }
 
@@ -284,39 +341,6 @@ fn param_list(tokens: &mut Stream<Token>) -> ParseResult<Vec<Parameter>> {
 
 fn struct_fields(tokens: &mut Stream<Token>) -> ParseResult<Vec<Field>> {
     todo!()
-}
-
-fn peek_identifier<S1: Into<String> + Display, S2: Into<String> + Display>(
-    tokens: &mut Stream<Token>,
-    expected_to_find: S1,
-    found_after: S2,
-) -> ParseResult<String> {
-    match tokens.peek() {
-        Token::Identifier(name) => {
-            tokens.pop();
-            Ok(name.clone())
-        }
-        otherwise => Err(format!(
-            "Expected to find {} after {} but found {} instead",
-            expected_to_find, found_after, otherwise
-        )),
-    }
-}
-
-fn peek_basic<S: Into<String> + Display>(
-    tokens: &mut Stream<Token>,
-    basic: OpalBasic,
-    error: S,
-) -> ParseResult<Token> {
-    match tokens.peek() {
-        Token::Basic(basic) => Ok(tokens.pop()),
-        otherwise => Err(format!(
-            "Expected to find {} {} but found {} instead",
-            Token::Basic(basic),
-            error,
-            otherwise
-        )),
-    }
 }
 
 fn enum_members(tokens: &mut Stream<Token>) -> ParseResult<Vec<String>> {
