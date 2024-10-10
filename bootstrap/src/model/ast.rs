@@ -1,107 +1,183 @@
+use crate::span::{Span, Spanned};
 use either::Either;
+
+pub type Identifier = Spanned<String>;
 
 pub type Jewel = Vec<Item>;
 
-#[derive(Debug)]
-pub struct FunctionItem {
-    name: String,
-    parameters: Vec<Parameter>,
-    return_type: Option<TypeRepr>,
-    body: BlockExpression,
-}
-
-impl FunctionItem {
-    pub fn new(
-        name: String,
-        parameters: Vec<Parameter>,
-        return_type: Option<TypeRepr>,
-        body: BlockExpression,
-    ) -> Self {
-        Self {
-            name: name,
-            parameters: parameters,
-            return_type: return_type,
-            body: body,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct TypeAliasItem {
-    name: String,
-    ty: TypeRepr,
-}
-
-#[derive(Debug)]
-pub struct StructItem {
-    name: String,
-    fields: Vec<Field>,
-}
-
-impl StructItem {
-    pub fn new(name: String, fields: Vec<Field>) -> Self {
-        Self {
-            name: name,
-            fields: fields,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct EnumItem {
-    name: String,
-    variants: Vec<String>,
-}
-
-impl EnumItem {
-    pub fn new(name: String, variants: Vec<String>) -> Self {
-        Self {
-            name: name,
-            variants: variants,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ConstItem {
-    name: String,
-    ty: TypeRepr,
-    value: Expression,
-}
-
-#[derive(Debug)]
-pub struct StaticItem {
-    name: String,
-    ty: TypeRepr,
-    value: Expression,
-}
-
-#[derive(Debug)]
 pub enum Item {
-    // Module(ModuleItem),
     Function(FunctionItem),
     TypeAlias(TypeAliasItem),
     Struct(StructItem),
     Enum(EnumItem),
-    Constant(ConstItem),
+    Const(ConstItem),
     Static(StaticItem),
+}
+
+#[derive(Debug)]
+pub struct FunctionItem {
+    name: Identifier,
+    parameters: Vec<Parameter>,
+    return_type: TypeRepr,
+    body: BlockExpression,
+    span: Span,
 }
 
 #[derive(Debug)]
 pub struct Parameter {
     is_mutable: bool,
-    name: String,
+    name: Identifier,
     ty: TypeRepr,
+    span: Span,
+}
+
+#[derive(Debug)]
+pub struct TypeAliasItem {
+    name: Identifier,
+    ty: TypeRepr,
+    span: Span,
+}
+
+#[derive(Debug)]
+pub struct StructItem {
+    name: Identifier,
+    fields: Vec<Field>,
+    span: Span,
 }
 
 #[derive(Debug)]
 pub struct Field {
-    name: String,
+    name: Identifier,
     ty: TypeRepr,
+    span: Span,
 }
 
 #[derive(Debug)]
-pub enum BuiltinTypeRepr {
+pub struct EnumItem {
+    name: Identifier,
+    variants: Vec<Identifier>,
+    span: Span,
+}
+
+#[derive(Debug)]
+pub struct ConstItem {
+    name: Identifier,
+    ty: TypeRepr,
+    value: Expression,
+    span: Span,
+}
+
+#[derive(Debug)]
+pub struct StaticItem {
+    name: Identifier,
+    ty: TypeRepr,
+    value: Expression,
+    span: Span,
+}
+
+#[derive(Debug)]
+pub struct Expression {
+    pub kind: ExpressionKind,
+    pub span: Span,
+}
+
+impl Expression {
+    pub fn new(kind: ExpressionKind, span: Span) -> Self {
+        Self { kind, span }
+    }
+}
+
+#[derive(Debug)]
+pub enum ExpressionKind {
+    WithoutBlock(ExpressionWithoutBlock),
+    WithBlock(ExpressionWithBlock),
+}
+
+#[derive(Debug)]
+pub enum ExpressionWithoutBlock {
+    Character(char),
+    String(String),
+    Integer(u32),
+    True,
+    False,
+
+    Path {
+        is_global: bool,
+        segments: Vec<Identifier>,
+    },
+    Borrow {
+        is_mutable: bool,
+        expr: Box<Expression>,
+    },
+    Dereference(Box<Expression>),
+    ErrorPropagation(Box<Expression>),
+    Negation(NegateOperator, Box<Expression>),
+    ArithmeticOrLogical(
+        Box<Expression>,
+        ArithmeticOrLogicalOperator,
+        Box<Expression>,
+    ),
+    Comparison(Box<Expression>, ComparisonOperator, Box<Expression>),
+    LazyBoolean(Box<Expression>, LazyBooleanOperator, Box<Expression>),
+    Assignment(Box<Expression>, Box<Expression>),
+    CompoundAssignment(Box<Expression>, CompoundAssignmentOperator, Box<Expression>),
+
+    Grouped(Box<Expression>),
+    Array(Vec<Expression>),
+    Index(Box<Expression>, Box<Expression>),
+    Call(Box<Expression>, Vec<Expression>),
+    Field(Box<Expression>, Identifier),
+    Return(Option<Box<Expression>>),
+}
+
+#[derive(Debug)]
+pub enum ExpressionWithBlock {
+    Block(BlockExpression),
+    If(IfExpression),
+    When {
+        subject: Box<Expression>,
+        arms: Vec<WhenArm>,
+    },
+    For(Identifier, Box<Expression>, BlockExpression),
+    While(Box<Expression>, BlockExpression),
+}
+
+pub type BlockExpression = Vec<Statement>;
+
+#[derive(Debug)]
+pub struct IfExpression {
+    predicate: Box<Expression>,
+    then_block: Spanned<BlockExpression>,
+    else_block: Option<Spanned<Either<BlockExpression, Box<IfExpression>>>>,
+}
+
+#[derive(Debug)]
+pub struct Statement {
+    kind: StatementKind,
+    span: Span,
+}
+
+#[derive(Debug)]
+pub enum StatementKind {
+    Let {
+        name: Identifier,
+        ty: TypeRepr,
+        initializer: Expression,
+    },
+    ExpressionWithBlock(ExpressionWithBlock),
+    ExpressionWithoutBlock(ExpressionWithoutBlock),
+    Continue,
+    Break,
+}
+
+#[derive(Debug)]
+pub struct TypeRepr {
+    kind: TypeReprKind,
+    span: Span,
+}
+
+#[derive(Debug)]
+pub enum TypeReprKind {
     U8,
     I8,
     U16,
@@ -111,45 +187,19 @@ pub enum BuiltinTypeRepr {
     Bool,
     Char,
     Str,
-}
-
-#[derive(Debug)]
-pub enum TypeRepr {
-    Builtin(BuiltinTypeRepr),
+    Unit,
     Array(Box<TypeRepr>, usize),
     Reference(bool, Box<TypeRepr>),
     Parenthesized(Box<TypeRepr>),
-    Path(bool, Vec<String>),
+    Path(bool, Identifier),
 }
 
 #[derive(Debug)]
-pub struct LetStatement {
-    name: String,
-    ty: TypeRepr,
-    initializer: Expression,
-}
-
-#[derive(Debug)]
-pub enum ExpressionStatement {
-    WithoutBlock(ExpressionWithoutBlock),
-    WithBlock(ExpressionWithBlock),
-}
-
-#[derive(Debug)]
-pub enum Statement {
-    Let(LetStatement),
-    Expression(ExpressionStatement),
-    Continue,
-    Break,
-}
-
-#[derive(Debug)]
-pub enum LiteralExpression {
-    Char(char),
-    String(String),
-    Integer(usize),
-    True,
-    False,
+pub struct WhenArm {
+    case: TypeRepr,
+    guard: Option<Box<Expression>>,
+    block: Spanned<ExpressionWithBlock>,
+    span: Span,
 }
 
 #[derive(Debug)]
@@ -196,76 +246,4 @@ pub enum CompoundAssignmentOperator {
     Or,
     LShift,
     RShift,
-}
-
-#[derive(Debug)]
-pub enum OperatorExpression {
-    /* & */      Borrow(bool, Box<Expression>),
-    /* * */      Dereference(Box<Expression>),
-    /* expr */   ErrorPropagation(Box<Expression>),
-    /* - OR ! */ Negation(NegateOperator, Box<Expression>),
-    /* expr */   ArithmeticOrLogical(
-        Box<Expression>,
-        ArithmeticOrLogicalOperator,
-        Box<Expression>,
-    ),
-    /* expr */   Comparison(Box<Expression>, ComparisonOperator, Box<Expression>),
-    /* expr */   LazyBoolean(Box<Expression>, LazyBooleanOperator, Box<Expression>),
-    /* expr */   Assignment(Box<Expression>, Box<Expression>),
-    /* expr */   CompoundAssignment(Box<Expression>, CompoundAssignmentOperator, Box<Expression>),
-}
-
-#[derive(Debug)]
-pub enum ExpressionWithoutBlock {
-    Literal(LiteralExpression),
-    Path(bool, Vec<String>),
-    Operator(OperatorExpression),
-    /* ( */      Grouped(Box<Expression>),
-    /* [ */      Array(Vec<Box<Expression>>),
-    /* expr */   Index(Box<Expression>, Box<Expression>),
-    /* expr */   Call(Box<Expression>, Vec<Box<Expression>>),
-    /* expr */   Field(Box<Expression>, String),
-    /* return */ Return(Option<Box<Expression>>),
-}
-
-pub type BlockExpression = Vec<Statement>;
-
-#[derive(Debug)]
-pub struct IfExpression {
-    pub predicate: Box<Expression>,
-    pub then_block: BlockExpression,
-    pub else_block: Option<Either<BlockExpression, Box<IfExpression>>>,
-}
-
-#[derive(Debug)]
-pub struct WhenArm {
-    case: TypeRepr,
-    guard: Option<Box<Expression>>,
-    block: ExpressionWithBlock,
-}
-
-#[derive(Debug)]
-pub struct WhenExpression {
-    scrutinee: Box<Expression>,
-    arms: Vec<WhenArm>,
-}
-
-#[derive(Debug)]
-pub enum LoopExpression {
-    For(String, Box<Expression>, BlockExpression),
-    While(Box<Expression>, BlockExpression),
-}
-
-#[derive(Debug)]
-pub enum ExpressionWithBlock {
-    Block(BlockExpression),
-    If(IfExpression),
-    When(WhenExpression),
-    Loop(LoopExpression),
-}
-
-#[derive(Debug)]
-pub enum Expression {
-    WithoutBlock(ExpressionWithoutBlock),
-    WithBlock(ExpressionWithBlock),
 }

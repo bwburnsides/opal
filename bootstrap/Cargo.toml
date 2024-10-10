@@ -4,6 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-# combinators = { version = "0.1.0", path = "../combinators" }
-# chumsky = { version = "1.0.0-alpha.0", features = ["pratt"] }
 either = "1.13.0"
