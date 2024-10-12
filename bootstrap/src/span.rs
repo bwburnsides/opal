@@ -1,15 +1,12 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Span {
     pub start: usize,
     pub stop: usize,
 }
 
 impl Span {
-    pub fn increment(&self) -> Self {
-        Self {
-            start: self.stop + 1,
-            stop: self.start + 2,
-        }
+    pub fn new(start: usize, stop: usize) -> Self {
+        Self { start, stop }
     }
 
     pub fn between(start: Self, stop: Self) -> Self {
@@ -20,7 +17,7 @@ impl Span {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Spanned<T> {
     pub item: T,
     pub span: Span,

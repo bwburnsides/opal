@@ -1,18 +1,19 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+
 mod error;
 mod model;
 mod parse;
-mod pratt;
 mod span;
 mod stream;
-mod tokenize;
 
 fn main() {
-    // match tokenize::tokenize("enum Color {Red, Green, Blue}") {
-    //     Ok(mut tokens) => {
-    //         let _ = parse::jewel(&mut tokens);
-    //     }
-    //     Err(err) => {
-    //         println!("{:?}", err);
-    //     }
-    // };
+    let mut tokens = parse::tokenize("foo[[1,2]]").unwrap();
+
+    let result = parse::expression(&mut tokens);
+
+    match result {
+        Ok(expr) => println!("{expr:#?}"),
+        Err(err) => println!("{err:#?}"),
+    }
 }

@@ -1,9 +1,7 @@
-use std::fmt::Display;
-
 use crate::span::*;
 
 pub trait PeekFor<T, U> {
-    fn peek_for<S: Into<String> + Display>(&mut self, kind: T, error: S) -> U;
+    fn peek_for(&mut self, kind: T, error_message: String) -> U;
 }
 
 pub trait EndMarked: Clone + PartialEq {
@@ -17,6 +15,10 @@ pub struct Stream<T> {
 }
 
 impl<T: EndMarked> Stream<T> {
+    pub fn len(&self) -> usize {
+        self.spans.len()
+    }
+
     pub fn peek(&self) -> T {
         self.spanned_peek().item
     }
@@ -41,7 +43,7 @@ impl<T: EndMarked> Stream<T> {
     }
 
     fn end_spanned(&self) -> Spanned<T> {
-        Spanned::new(T::END, Span::increment(&self.last_span))
+        Spanned::new(T::END, self.last_span)
     }
 
     fn spanned_peek(&self) -> Spanned<T> {
@@ -58,12 +60,32 @@ impl<'a> From<&'a str> for Stream<char> {
     }
 }
 
-impl<T> FromIterator<Spanned<T>> for Stream<T> {
+impl<T: EndMarked> FromIterator<Spanned<T>> for Stream<T> {
     fn from_iter<I: IntoIterator<Item = Spanned<T>>>(iter: I) -> Self {
         let mut spans: Vec<_> = iter.into_iter().collect();
-        let last_span = spans.last().unwrap().span;
+
+        let last_spanned = spans.last().unwrap();
+
+        let last_span = if last_spanned.item == T::END {
+            last_spanned.span
+        } else {
+            Span::new(last_spanned.span.stop, last_spanned.span.stop + 1)
+        };
+
         spans.reverse();
 
         Self { spans, last_span }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::stream::*;
+
+    #[test]
+    fn simple_string() {
+        let mut stream = Stream::from("0");
+        assert!(stream.len() == 1);
+        assert!(stream.pop() == Spanned::new('0', Span::new(0, 1)));
     }
 }

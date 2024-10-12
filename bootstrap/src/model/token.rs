@@ -1,5 +1,3 @@
-use either::Either::Left;
-
 use crate::stream::EndMarked;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -10,15 +8,14 @@ pub enum KeywordToken {
     Enum,
     Static,
     Const,
-    If,
     Let,
     Continue,
     Break,
     True,
     False,
+    Unit,
     When,
     For,
-    While,
     Return,
 }
 
@@ -33,15 +30,14 @@ impl std::fmt::Display for KeywordToken {
             Enum => write!(f, "enum"),
             Static => write!(f, "static"),
             Const => write!(f, "const"),
-            If => write!(f, "if"),
             Let => write!(f, "let"),
             Continue => write!(f, "continue"),
             Break => write!(f, "break"),
             True => write!(f, "True"),
             False => write!(f, "False"),
+            Unit => write!(f, "Unit"),
             When => write!(f, "when"),
             For => write!(f, "for"),
-            While => write!(f, "while"),
             Return => write!(f, "return"),
         }
     }
@@ -60,15 +56,14 @@ impl TryFrom<String> for KeywordToken {
             "enum" => Ok(Enum),
             "static" => Ok(Static),
             "const" => Ok(Const),
-            "if" => Ok(If),
             "let" => Ok(Let),
             "continue" => Ok(Continue),
             "break" => Ok(Break),
             "True" => Ok(True),
             "False" => Ok(False),
+            "Unit" => Ok(Unit),
             "when" => Ok(When),
             "for" => Ok(For),
-            "while" => Ok(While),
             "return" => Ok(Return),
             _ => Err(()),
         }
@@ -79,24 +74,51 @@ impl TryFrom<String> for KeywordToken {
 pub enum BasicToken {
     LBrace,
     RBrace,
-    Comma,
+
     LParen,
     RParen,
-    LightRArrow,
-    Colon2,
-    Ampersand,
-    Ampersand2,
-    Asterisk,
-    Hyphen,
-    Exclamation,
+
     LBrack,
     RBrack,
-    Equal,
-    Plus,
-    PlusEqual,
+
+    LAngle,
+    LAngle2,
+    RAngle,
+    RAngle2,
+
+    Ampersand,
+    Ampersand2,
+
     Bar,
     Bar2,
+
+    Equal,
+    PlusEqual,
+    AsteriskEqual,
+    HyphenEqual,
+    FSlashEqual,
+    AmpersandEqual,
+    BarEqual,
+    LAngle2Equal,
+    RAngle2Equal,
+
     Equal2,
+    BangEqual,
+    RAngleEqual,
+    LAngleEqual,
+
+    Plus,
+    Asterisk,
+
+    Period,
+    Comma,
+    Caret,
+
+    LightRArrow,
+    Colon2,
+    Hyphen,
+    Bang,
+    FSlash,
 }
 
 impl std::fmt::Display for BasicToken {
@@ -106,24 +128,50 @@ impl std::fmt::Display for BasicToken {
         match self {
             LBrace => write!(f, "{{"),
             RBrace => write!(f, "}}"),
-            Comma => write!(f, ","),
+
             LParen => write!(f, "("),
             RParen => write!(f, ")"),
-            LightRArrow => write!(f, "->"),
-            Colon2 => write!(f, "::"),
-            Ampersand => write!(f, "&"),
-            Ampersand2 => write!(f, "&&"),
-            Asterisk => write!(f, "*"),
-            Hyphen => write!(f, "-"),
-            Exclamation => write!(f, "!"),
+
             LBrack => write!(f, "["),
             RBrack => write!(f, "]"),
-            Equal => write!(f, "="),
-            Equal2 => write!(f, "=="),
-            Plus => write!(f, "+"),
-            PlusEqual => write!(f, "+="),
-            Bar2 => write!(f, "||"),
+
+            LAngle => write!(f, "<"),
+            LAngle2 => write!(f, "<<"),
+            RAngle => write!(f, ">"),
+            RAngle2 => write!(f, ">>"),
+
+            Ampersand => write!(f, "&"),
+            Ampersand2 => write!(f, "&&"),
+
             Bar => write!(f, "|"),
+            Bar2 => write!(f, "||"),
+
+            Equal => write!(f, "="),
+            PlusEqual => write!(f, "+="),
+            AsteriskEqual => write!(f, "*="),
+            HyphenEqual => write!(f, "-="),
+            FSlashEqual => write!(f, "/="),
+            AmpersandEqual => write!(f, "&="),
+            BarEqual => write!(f, "|="),
+            LAngle2Equal => write!(f, "<<="),
+            RAngle2Equal => write!(f, ">>="),
+
+            Equal2 => write!(f, "=="),
+            BangEqual => write!(f, "!="),
+            RAngleEqual => write!(f, ">="),
+            LAngleEqual => write!(f, "<="),
+
+            Period => write!(f, "."),
+            Caret => write!(f, "^"),
+
+            Comma => write!(f, ","),
+            LightRArrow => write!(f, "->"),
+            Colon2 => write!(f, "::"),
+            Asterisk => write!(f, "*"),
+            Hyphen => write!(f, "-"),
+            Bang => write!(f, "!"),
+            Plus => write!(f, "+"),
+            FSlash => write!(f, "/"),
         }
     }
 }
@@ -147,7 +195,7 @@ impl std::fmt::Display for LiteralToken {
     }
 }
 
-pub struct OpalIdentifier;
+pub struct IdentifierToken;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {

@@ -9,15 +9,20 @@ impl EndMarked for char {
     const END: char = '\0';
 }
 
-fn consume_hexadecimal_characters(stream: &mut Stream<char>) -> LexResult<LiteralToken> {
+fn consume_hexadecimal_characters(stream: &mut Stream<char>) -> LexResult<Spanned<LiteralToken>> {
     let mut chars: Vec<char> = Vec::new();
+    let mut span;
 
     match stream.peek() {
-        '0'..='9' | 'A'..='F' | 'a'..='f' => chars.push(stream.pop().item),
+        '0'..='9' | 'A'..='F' | 'a'..='f' => {
+            let popped = stream.pop();
+            chars.push(popped.item);
+            span = popped.span;
+        },
         otherwise => return Err(Error::with_details(
             stream.peek_span(),
             format!(
-                "Expected hexadecimal character while tokenizing integer literal, but found {} instead", otherwise
+                "Expected hexadecimal character while tokenizing integer literal, but found {otherwise} instead"
             ),
             "Hexadecimal character matches the pattern [0-9A-Fa-f]".to_string(),
         )),
@@ -25,18 +30,27 @@ fn consume_hexadecimal_characters(stream: &mut Stream<char>) -> LexResult<Litera
 
     loop {
         match stream.peek() {
-            '0'..='9' | 'A'..='F' | 'a'..='f' => chars.push(stream.pop().item),
+            '0'..='9' | 'A'..='F' | 'a'..='f' => {
+                let popped = stream.pop();
+                chars.push(popped.item);
+                span = Span::between(span, popped.span);
+            }
             otherwise => {
                 let maybe_int =
                     u32::from_str_radix(chars.into_iter().collect::<String>().as_str(), 16);
                 match maybe_int {
-                    Ok(int) => return Ok(LiteralToken::Integer(int)),
+                    Ok(int) => return Ok(
+                        Spanned::new(
+                            LiteralToken::Integer(int),
+                            span
+                        )
+                    ),
                     Err(e) => return Err(Error::with_details(
                         stream.peek_span(),
                         format!(
-                            "Expected hexadecimal character while tokenizing integer literal, but found {} instead", otherwise
+                            "Expected hexadecimal character while tokenizing integer literal, but found {otherwise} instead"
                         ),
-                        format!("Hexadecimal character matches the pattern [0-9A-Fa-f]\nThe following error was produced: {:?}", e),
+                        format!("Hexadecimal character matches the pattern [0-9A-Fa-f]\nThe following error was produced: {e:?}"),
                     ))
                 };
             }
@@ -44,17 +58,21 @@ fn consume_hexadecimal_characters(stream: &mut Stream<char>) -> LexResult<Litera
     }
 }
 
-fn consume_binary_characters(stream: &mut Stream<char>) -> LexResult<LiteralToken> {
+fn consume_binary_characters(stream: &mut Stream<char>) -> LexResult<Spanned<LiteralToken>> {
     let mut chars: Vec<char> = Vec::new();
+    let mut span;
 
     match stream.peek() {
-        '0' | '1' => chars.push(stream.pop().item),
+        '0' | '1' => {
+            let popped = stream.pop();
+            chars.push(popped.item);
+            span = popped.span;
+        },
         otherwise => {
             return Err(Error::with_details(
                 stream.peek_span(),
                 format!(
-                "Expected binary character while tokenizing integer literal, but found {} instead",
-                otherwise
+                "Expected binary character while tokenizing integer literal, but found {otherwise} instead",
             ),
                 "Binary character matches the pattern [0-1]".to_string(),
             ))
@@ -63,12 +81,19 @@ fn consume_binary_characters(stream: &mut Stream<char>) -> LexResult<LiteralToke
 
     loop {
         match stream.peek() {
-            '0' | '1' => chars.push(stream.pop().item),
+            '0' | '1' => {
+                let popped = stream.pop();
+                chars.push(popped.item);
+                span = popped.span;
+            }
             otherwise => {
                 let maybe_int =
                     u32::from_str_radix(chars.into_iter().collect::<String>().as_str(), 2);
                 match maybe_int {
-                    Ok(int) => return Ok(LiteralToken::Integer(int)),
+                    Ok(int) => return Ok(Spanned::new(
+                        LiteralToken::Integer(int),
+                        span
+                    )),
                     Err(e) => return Err(Error::with_details(
                         stream.peek_span(),
                         format!(
@@ -82,11 +107,16 @@ fn consume_binary_characters(stream: &mut Stream<char>) -> LexResult<LiteralToke
     }
 }
 
-fn consume_decimal_characters(stream: &mut Stream<char>) -> LexResult<LiteralToken> {
+fn consume_decimal_characters(stream: &mut Stream<char>) -> LexResult<Spanned<LiteralToken>> {
     let mut chars: Vec<char> = Vec::new();
+    let mut span;
 
     match stream.peek() {
-        '0'..='9' => chars.push(stream.pop().item),
+        '0'..='9' => {
+            let popped = stream.pop();
+            chars.push(popped.item);
+            span = popped.span;
+        }
         otherwise => {
             return Err(Error::with_details(
                 stream.peek_span(),
@@ -101,7 +131,11 @@ fn consume_decimal_characters(stream: &mut Stream<char>) -> LexResult<LiteralTok
 
     loop {
         match stream.peek() {
-            '0'..='9' => chars.push(stream.pop().item),
+            '0'..='9' => {
+                let popped = stream.pop();
+                chars.push(popped.item);
+                span = popped.span;
+            }
             otherwise => {
                 let maybe_int = chars
                     .into_iter()
@@ -109,7 +143,12 @@ fn consume_decimal_characters(stream: &mut Stream<char>) -> LexResult<LiteralTok
                     .as_str()
                     .parse::<u32>();
                 match maybe_int {
-                    Ok(int) => return Ok(LiteralToken::Integer(int)),
+                    Ok(int) => return Ok(
+                        Spanned::new(
+                            LiteralToken::Integer(int),
+                            span,
+                        )
+                    ),
                     Err(e) => return Err(Error::with_details(
                         stream.peek_span(),
                         format!(
@@ -134,35 +173,35 @@ fn tokenize_integer_literal(stream: &mut Stream<char>) -> LexResult<Spanned<Toke
             match stream.peek() {
                 'x' => {
                     stream.pop();
-                    let lit = consume_hexadecimal_characters(stream)?;
+                    let spanned_lit = consume_hexadecimal_characters(stream)?;
                     let stop = stream.peek_span();
 
-                    Ok(Spanned::new(Literal(lit), Span::between(start, stop)))
+                    Ok(Spanned::new(Literal(spanned_lit.item), Span::between(start, spanned_lit.span)))
                 }
                 'b' => {
                     stream.pop();
-                    let lit = consume_binary_characters(stream)?;
+                    let spanned_lit = consume_binary_characters(stream)?;
                     let stop = stream.peek_span();
 
-                    Ok(Spanned::new(Literal(lit), Span::between(start, stop)))
+                    Ok(Spanned::new(Literal(spanned_lit.item), Span::between(start, spanned_lit.span)))
                 }
                 '0'..='9' => Err(Error::with_details(
                     stream.peek_span(),
                     format!("Expected decimal integer literal `0`, hexadecimal literal, or binary literal, but found {} instead", stream.peek()),
                     "Decimal integer literal cannot begin with leading zero".to_string(),
                 )),
-                _ => {
-                    let stop = stream.peek_span();
-                    Ok(Spanned::new(Literal(Integer(0)), Span::between(start, stop)))
-                },
+                _ => Ok(Spanned::new(Literal(Integer(0)), Span::between(start, start))),
             }
         }
         '1'..='9' => {
             let start = stream.peek_span();
-            let lit = consume_decimal_characters(stream)?;
+            let spanned_lit = consume_decimal_characters(stream)?;
             let stop = stream.peek_span();
 
-            Ok(Spanned::new(Literal(lit), Span::between(start, stop)))
+            Ok(Spanned::new(
+                Literal(spanned_lit.item),
+                Span::between(start, spanned_lit.span),
+            ))
         }
         otherwise => Err(Error::with_details(
             stream.peek_span(),
@@ -196,7 +235,6 @@ fn tokenize_word(stream: &mut Stream<char>) -> LexResult<Spanned<Token>> {
                         }
 
                         let str: String = chars.iter().collect();
-                        // break (chars.iter().collect::<String>(), span)
 
                         match KeywordToken::try_from(str.clone()) {
                             Ok(kw) => break Ok(Spanned::new(Keyword(kw), span)),
@@ -323,6 +361,8 @@ fn tokenize_basic(stream: &mut Stream<char>) -> LexResult<Spanned<Token>> {
         '{' => Ok(Spanned::new(Basic(LBrace), stream.pop().span)),
         '}' => Ok(Spanned::new(Basic(RBrace), stream.pop().span)),
         ',' => Ok(Spanned::new(Basic(Comma), stream.pop().span)),
+        '.' => Ok(Spanned::new(Basic(Period), stream.pop().span)),
+        '^' => Ok(Spanned::new(Basic(Caret), stream.pop().span)),
         '(' => Ok(Spanned::new(Basic(LParen), stream.pop().span)),
         ')' => Ok(Spanned::new(Basic(RParen), stream.pop().span)),
         '&' => {
@@ -332,14 +372,42 @@ fn tokenize_basic(stream: &mut Stream<char>) -> LexResult<Spanned<Token>> {
                     let stop = stream.pop().span;
                     Ok(Spanned::new(Basic(Ampersand2), Span::between(start, stop)))
                 }
+                '=' => {
+                    let stop = stream.pop().span;
+                    Ok(Spanned::new(
+                        Basic(AmpersandEqual),
+                        Span::between(start, stop),
+                    ))
+                }
                 _ => Ok(Spanned::new(
                     Basic(Ampersand),
                     Span::between(start, stream.peek_span()),
                 )),
             }
         }
-        '*' => Ok(Spanned::new(Basic(Asterisk), stream.pop().span)),
-        '!' => Ok(Spanned::new(Basic(Exclamation), stream.pop().span)),
+        '*' => {
+            let start = stream.pop().span;
+            match stream.peek() {
+                '=' => {
+                    let stop = stream.pop().span;
+                    Ok(Spanned::new(
+                        Basic(AsteriskEqual),
+                        Span::between(start, stop),
+                    ))
+                }
+                _ => Ok(Spanned::new(
+                    Basic(Asterisk),
+                    Span::between(start, stream.peek_span()),
+                )),
+            }
+        }
+        '!' => {
+            let start = stream.pop().span;
+            match stream.peek() {
+                '=' => Ok(Spanned::new(Basic(BangEqual), stream.pop().span)),
+                _ => Ok(Spanned::new(Basic(Bang), stream.peek_span())),
+            }
+        }
         '[' => Ok(Spanned::new(Basic(LBrack), stream.pop().span)),
         ']' => Ok(Spanned::new(Basic(RBrack), stream.pop().span)),
         '=' => {
@@ -361,6 +429,10 @@ fn tokenize_basic(stream: &mut Stream<char>) -> LexResult<Spanned<Token>> {
                 '|' => {
                     let stop = stream.pop().span;
                     Ok(Spanned::new(Basic(Bar2), Span::between(start, stop)))
+                }
+                '=' => {
+                    let stop = stream.pop().span;
+                    Ok(Spanned::new(Basic(BarEqual), Span::between(start, stop)))
                 }
                 _ => Ok(Spanned::new(
                     Basic(Bar),
@@ -388,6 +460,10 @@ fn tokenize_basic(stream: &mut Stream<char>) -> LexResult<Spanned<Token>> {
                     let stop = stream.pop().span;
                     Ok(Spanned::new(Basic(LightRArrow), Span::between(start, stop)))
                 }
+                '=' => {
+                    let stop = stream.pop().span;
+                    Ok(Spanned::new(Basic(HyphenEqual), Span::between(start, stop)))
+                }
                 _ => Ok(Spanned::new(
                     Basic(Hyphen),
                     Span::between(start, stream.peek_span()),
@@ -407,6 +483,65 @@ fn tokenize_basic(stream: &mut Stream<char>) -> LexResult<Spanned<Token>> {
                         "Expected ':' while attempting to tokenize {} but found {}",
                         Colon2, otherwise
                     ),
+                )),
+            }
+        }
+        '/' => {
+            let start = stream.pop().span;
+            match stream.peek() {
+                '=' => Ok(Spanned::new(Basic(FSlashEqual), stream.pop().span)),
+                _ => Ok(Spanned::new(Basic(FSlash), stream.pop().span)),
+            }
+        }
+        '<' => {
+            let start = stream.pop().span;
+            match stream.peek() {
+                '<' => match stream.peek() {
+                    '=' => {
+                        let stop = stream.pop().span;
+                        Ok(Spanned::new(
+                            Basic(LAngle2Equal),
+                            Span::between(start, stop),
+                        ))
+                    }
+                    _ => {
+                        let stop = stream.pop().span;
+                        Ok(Spanned::new(Basic(LAngle2), Span::between(start, stop)))
+                    }
+                },
+                '=' => Ok(Spanned::new(
+                    Basic(LAngleEqual),
+                    Span::between(start, stream.pop().span),
+                )),
+                _ => Ok(Spanned::new(
+                    Basic(LAngle),
+                    Span::between(start, stream.peek_span()),
+                )),
+            }
+        }
+        '>' => {
+            let start = stream.pop().span;
+            match stream.peek() {
+                '>' => match stream.peek() {
+                    '=' => {
+                        let stop = stream.pop().span;
+                        Ok(Spanned::new(
+                            Basic(RAngle2Equal),
+                            Span::between(start, stop),
+                        ))
+                    }
+                    _ => {
+                        let stop = stream.pop().span;
+                        Ok(Spanned::new(Basic(RAngle2), Span::between(start, stop)))
+                    }
+                },
+                '=' => Ok(Spanned::new(
+                    Basic(RAngleEqual),
+                    Span::between(start, stream.pop().span),
+                )),
+                _ => Ok(Spanned::new(
+                    Basic(RAngle),
+                    Span::between(start, stream.peek_span()),
                 )),
             }
         }

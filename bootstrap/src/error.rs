@@ -2,9 +2,9 @@ use crate::span::Span;
 
 #[derive(Debug)]
 pub struct Error {
-    span: Span,
-    message: String,
-    details: Option<String>,
+    pub span: Span,
+    pub message: String,
+    pub details: Option<String>,
 }
 
 impl Error {
