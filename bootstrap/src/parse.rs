@@ -6,7 +6,6 @@ mod lex;
 mod test;
 
 pub use crate::parse::expr::*;
-pub use crate::parse::item::*;
 pub use crate::parse::lex::*;
 
 use crate::error::Error;
