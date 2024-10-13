@@ -27,6 +27,13 @@ impl<T> Spanned<T> {
     pub fn new(item: T, span: Span) -> Self {
         Self { item, span }
     }
+
+    pub fn empty(item: T) -> Self {
+        Self {
+            item,
+            span: Span::new(0, 0),
+        }
+    }
 }
 
 impl<T> From<(usize, T)> for Spanned<T> {

@@ -1,6 +1,8 @@
 use crate::model::*;
 use crate::parse::lex;
+use crate::parse::expr::*;
 use crate::span::{Span, Spanned};
+use crate::stream::*;
 
 #[test]
 fn lex_0() {
@@ -150,4 +152,138 @@ fn lex_string() {
             Span::new(0, 7)
         )
     );
+}
+
+#[test]
+fn parse_integer_literal() {
+    let mut tokens: Stream<Token> = vec![Spanned::empty(Token::Literal(LiteralToken::Integer(4)))]
+        .into_iter()
+        .collect();
+
+    let expr = expression(&mut tokens).unwrap();
+
+    if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) = expr.kind {
+        assert!(true);
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn parse_add_expr() {
+    let mut tokens: Stream<Token> = vec![
+        Spanned::empty(Token::Literal(LiteralToken::Integer(4))),
+        Spanned::empty(Token::Basic(BasicToken::Plus)),
+        Spanned::empty(Token::Literal(LiteralToken::Integer(2))),
+    ].into_iter().collect();
+
+    let expr = expression(&mut tokens).unwrap();
+
+    if let ExpressionKind::WithoutBlock(
+        ExpressionWithoutBlock::ArithmeticOrLogical(left, op, right)
+    ) = expr.kind {
+        assert_eq!(op, ArithmeticOrLogicalOperator::Plus);
+
+        match left.kind {
+            ExpressionKind::WithoutBlock(
+                ExpressionWithoutBlock::Integer(4)
+            ) => { /* */ },
+            _ => assert!(false),
+        }
+
+        match right.kind {
+            ExpressionKind::WithoutBlock(
+                ExpressionWithoutBlock::Integer(2)
+            ) => assert!(true),
+            _ => assert!(false),
+        }
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn parse_add_assoc_expr() {
+    let mut tokens: Stream<Token> = vec![
+        Spanned::empty(Token::Literal(LiteralToken::Integer(4))),
+        Spanned::empty(Token::Basic(BasicToken::Plus)),
+        Spanned::empty(Token::Literal(LiteralToken::Integer(2))),
+        Spanned::empty(Token::Basic(BasicToken::Plus)),
+        Spanned::empty(Token::Literal(LiteralToken::Integer(1))),
+    ].into_iter().collect();
+
+    let expr = expression(&mut tokens).unwrap();
+
+    if let ExpressionKind::WithoutBlock(
+        ExpressionWithoutBlock::ArithmeticOrLogical(left, op, right)
+    ) = expr.kind {
+        assert_eq!(op, ArithmeticOrLogicalOperator::Plus);
+
+        match left.kind {
+            ExpressionKind::WithoutBlock(
+                ExpressionWithoutBlock::ArithmeticOrLogical(left_inner, op_inner, right_inner)
+            ) => {
+                assert_eq!(op_inner, ArithmeticOrLogicalOperator::Plus);
+
+                if let ExpressionKind::WithoutBlock(
+                    ExpressionWithoutBlock::Integer(4)
+                ) = left_inner.kind {
+                    if let ExpressionKind::WithoutBlock(
+                        ExpressionWithoutBlock::Integer(2)
+                    ) = right_inner.kind {
+                        assert!(true)
+                    } else {
+                        assert!(false)
+                    }
+                } else {
+                    assert!(false)
+                }
+            },
+            _ => assert!(false)
+        }
+
+        match right.kind {
+            ExpressionKind::WithoutBlock(
+                ExpressionWithoutBlock::Integer(1)
+            ) => assert!(true),
+            _ => assert!(false),
+        }
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn parse_assign_expr() {
+    let mut tokens: Stream<Token> = vec![
+        Spanned::empty(Token::Identifier("foo".to_owned())),
+        Spanned::empty(Token::Basic(BasicToken::Equal)),
+        Spanned::empty(Token::Literal(LiteralToken::Integer(4)))
+    ].into_iter().collect();
+
+    let expr = expression(&mut tokens).unwrap();
+
+    if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Assignment(left, op, right)) = expr.kind {
+        assert_eq!(op, AssignmentOperator::Equal);
+
+        if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Path { is_global: false, name, segments}) = left.kind {
+            assert_eq!(name.item, "foo".to_owned());
+            assert_eq!(segments.len(), 0);
+
+            if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) = right.kind {
+                assert!(true);
+            } else {
+                assert!(false);
+            }
+        } else {
+            assert!(false)
+        }
+    } else {
+        assert!(false)
+    }
+}
+
+#[test]
+fn parse_assign_assoc_expr() {
+    assert!(false)
 }

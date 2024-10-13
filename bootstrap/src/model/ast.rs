@@ -218,7 +218,7 @@ pub enum NegateOperator {
     Logical,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ArithmeticOrLogicalOperator {
     Plus,
     Minus,
@@ -338,7 +338,7 @@ impl From<LazyBooleanOperator> for BasicToken {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum AssignmentOperator {
     Equal,
     PlusEqual,
@@ -357,7 +357,7 @@ impl TryFrom<Token> for AssignmentOperator {
     fn try_from(value: Token) -> Result<Self, Self::Error> {
         match value {
             Token::Basic(basic) => match basic {
-                BasicToken::Equal2 => Ok(Self::Equal),
+                BasicToken::Equal => Ok(Self::Equal),
                 BasicToken::PlusEqual => Ok(Self::PlusEqual),
                 BasicToken::HyphenEqual => Ok(Self::MinusEqual),
                 BasicToken::AsteriskEqual => Ok(Self::TimesEqual),
@@ -376,7 +376,7 @@ impl TryFrom<Token> for AssignmentOperator {
 impl From<AssignmentOperator> for BasicToken {
     fn from(value: AssignmentOperator) -> Self {
         match value {
-            AssignmentOperator::Equal => Self::Equal2,
+            AssignmentOperator::Equal => Self::Equal,
             AssignmentOperator::PlusEqual => Self::PlusEqual,
             AssignmentOperator::MinusEqual => Self::HyphenEqual,
             AssignmentOperator::TimesEqual => Self::AsteriskEqual,
