@@ -410,6 +410,7 @@ fn tokenize_basic(stream: &mut Stream<char>) -> LexResult<Spanned<Token>> {
         }
         '[' => Ok(Spanned::new(Basic(LBrack), stream.pop().span)),
         ']' => Ok(Spanned::new(Basic(RBrack), stream.pop().span)),
+        '?' => Ok(Spanned::new(Basic(Question), stream.pop().span)),
         '=' => {
             let start = stream.pop().span;
             match stream.peek() {
@@ -477,12 +478,9 @@ fn tokenize_basic(stream: &mut Stream<char>) -> LexResult<Spanned<Token>> {
                     let stop = stream.pop().span;
                     Ok(Spanned::new(Basic(Colon2), Span::between(start, stop)))
                 }
-                otherwise => Err(Error::new(
-                    stream.peek_span(),
-                    format!(
-                        "Expected ':' while attempting to tokenize {} but found {}",
-                        Colon2, otherwise
-                    ),
+                _otherwise => Ok(Spanned::new(
+                    Basic(Colon),
+                    Span::between(start, stream.peek_span()),
                 )),
             }
         }
@@ -545,6 +543,7 @@ fn tokenize_basic(stream: &mut Stream<char>) -> LexResult<Spanned<Token>> {
                 )),
             }
         }
+        ';' => Ok(Spanned::new(Basic(Semicolon), stream.pop().span)),
         otherwise => Err(Error::new(
             stream.peek_span(),
             format!(

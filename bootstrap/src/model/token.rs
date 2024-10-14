@@ -17,6 +17,16 @@ pub enum KeywordToken {
     When,
     For,
     Return,
+    Mut,
+    U8,
+    I8,
+    U16,
+    I16,
+    U32,
+    I32,
+    Bool,
+    Char,
+    Str,
 }
 
 impl std::fmt::Display for KeywordToken {
@@ -39,6 +49,16 @@ impl std::fmt::Display for KeywordToken {
             When => write!(f, "when"),
             For => write!(f, "for"),
             Return => write!(f, "return"),
+            Mut => write!(f, "mut"),
+            U8 => write!(f, "u8"),
+            I8 => write!(f, "i8"),
+            U16 => write!(f, "u16"),
+            I16 => write!(f, "i16"),
+            U32 => write!(f, "u32"),
+            I32 => write!(f, "i32"),
+            Bool => write!(f, "bool"),
+            Char => write!(f, "char"),
+            Str => write!(f, "str"),
         }
     }
 }
@@ -65,6 +85,16 @@ impl TryFrom<String> for KeywordToken {
             "when" => Ok(When),
             "for" => Ok(For),
             "return" => Ok(Return),
+            "mut" => Ok(Mut),
+            "u8" => Ok(U8),
+            "i8" => Ok(I8),
+            "u16" => Ok(U16),
+            "i16" => Ok(I16),
+            "u32" => Ok(U32),
+            "i32" => Ok(I32),
+            "bool" => Ok(Bool),
+            "char" => Ok(Char),
+            "str" => Ok(Str),
             _ => Err(()),
         }
     }
@@ -113,12 +143,15 @@ pub enum BasicToken {
     Period,
     Comma,
     Caret,
+    Question,
 
     LightRArrow,
+    Colon,
     Colon2,
     Hyphen,
     Bang,
     FSlash,
+    Semicolon,
 }
 
 impl std::fmt::Display for BasicToken {
@@ -163,15 +196,18 @@ impl std::fmt::Display for BasicToken {
 
             Period => write!(f, "."),
             Caret => write!(f, "^"),
+            Question => write!(f, "?"),
 
             Comma => write!(f, ","),
             LightRArrow => write!(f, "->"),
+            Colon => write!(f, ":"),
             Colon2 => write!(f, "::"),
             Asterisk => write!(f, "*"),
             Hyphen => write!(f, "-"),
             Bang => write!(f, "!"),
             Plus => write!(f, "+"),
             FSlash => write!(f, "/"),
+            Semicolon => write!(f, ";"),
         }
     }
 }
@@ -196,6 +232,7 @@ impl std::fmt::Display for LiteralToken {
 }
 
 pub struct IdentifierToken;
+pub struct IntegerLiteralToken;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {

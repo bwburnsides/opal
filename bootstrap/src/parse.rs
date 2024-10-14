@@ -6,14 +6,15 @@ mod lex;
 mod test;
 
 pub use crate::parse::expr::*;
+pub use crate::parse::item::item;
 pub use crate::parse::lex::*;
 
 use crate::error::Error;
 use crate::model::*;
-use crate::span::Spanned;
+use crate::span::{Span, Spanned};
 use crate::stream::{PeekFor, Stream};
 
-type ParseResult<T> = Result<T, Error>;
+pub type ParseResult<T> = Result<T, Error>;
 
 impl PeekFor<BasicToken, ParseResult<Spanned<Token>>> for Stream<Token> {
     fn peek_for(&mut self, kind: BasicToken, error_message: String) -> ParseResult<Spanned<Token>> {
@@ -60,4 +61,67 @@ impl PeekFor<IdentifierToken, ParseResult<Identifier>> for Stream<Token> {
             )),
         }
     }
+}
+
+impl PeekFor<IntegerLiteralToken, ParseResult<u32>> for Stream<Token> {
+    fn peek_for(&mut self, _kind: IntegerLiteralToken, error_message: String) -> ParseResult<u32> {
+        match self.peek() {
+            Token::Literal(LiteralToken::Integer(val)) => {
+                let spanned = self.pop();
+                Ok(val)
+            }
+            otherwise => Err(Error::new(
+                self.peek_span(),
+                format!("{error_message}, but found {otherwise} instead"),
+            )),
+        }
+    }
+}
+
+pub fn jewel(tokens: &mut Stream<Token>) -> ParseResult<Jewel> {
+    let mut items = Vec::new();
+
+    loop {
+        match tokens.peek() {
+            Token::Eof => break Ok(items),
+            _ => items.push(item(tokens)?),
+        }
+    }
+}
+
+pub fn path(tokens: &mut Stream<Token>) -> ParseResult<Spanned<Path>> {
+    let start = tokens.peek_span();
+
+    let is_global = match tokens.peek_for(BasicToken::Colon2, String::from("")) {
+        Ok(_) => true,
+        Err(_) => false,
+    };
+
+    let mut segments = Vec::new();
+
+    loop {
+        match tokens.peek_for(IdentifierToken, String::from("")) {
+            Ok(ident) => segments.push(ident),
+            Err(_) => {
+                return Err(Error::new(
+                    tokens.peek_span(),
+                    String::from("Expected identifier while parsing path expression"),
+                ))
+            }
+        };
+
+        match tokens.peek_for(BasicToken::Colon2, String::from("")) {
+            Ok(_) => { /* */ }
+            Err(_) => break,
+        };
+    }
+
+    let base = segments
+        .pop()
+        .expect("Path expression parser should always produce at least one name");
+
+    Ok(Spanned::new(
+        Path::new(is_global, base, segments),
+        Span::between(start, tokens.peek_span()),
+    ))
 }

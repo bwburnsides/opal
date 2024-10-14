@@ -4,14 +4,17 @@ use crate::error::Error;
 use crate::model::{
     AssignmentOperator, Expression, ExpressionKind, KeywordToken, LiteralToken, Token,
 };
+use crate::parse;
 use crate::parse::BasicToken;
 use crate::parse::{ExpressionWithoutBlock, ParseResult};
-use crate::span::Span;
+use crate::span::{Span, Spanned};
 use crate::stream::{PeekFor, Stream};
 
 use crate::parse::IdentifierToken;
 
-use super::{ArithmeticOrLogicalOperator, ComparisonOperator, LazyBooleanOperator};
+use super::{
+    ArithmeticOrLogicalOperator, BlockExpression, ComparisonOperator, LazyBooleanOperator,
+};
 
 type ParserFunction = dyn Fn(Precedence, Expression, &mut Stream<Token>) -> ParseResult<Expression>;
 
@@ -30,6 +33,7 @@ pub enum Precedence {
     Additive,
     Multiplicative,
     Unary,
+    ErrorPropagation,
     FunctionCall,
     FieldExpression,
     Path,
@@ -53,7 +57,8 @@ impl Precedence {
             Additive => Shift,
             Multiplicative => Additive,
             Unary => Multiplicative,
-            FunctionCall => Unary,
+            ErrorPropagation => Unary,
+            FunctionCall => ErrorPropagation,
             FieldExpression => FunctionCall,
             Path => FieldExpression,
         }
@@ -100,6 +105,8 @@ impl Precedence {
             | Basic(LAngle2Equal)
             | Basic(RAngle2Equal) => Some((Self::Assignment, &assignment)),
 
+            Basic(Question) => Some((Self::ErrorPropagation, &error_propagation)),
+
             _ => None,
         }
     }
@@ -124,6 +131,10 @@ impl From<ArithmeticOrLogicalOperator> for Precedence {
 
 pub fn expression(tokens: &mut Stream<Token>) -> ParseResult<Expression> {
     pratt(Precedence::Minimum, tokens)
+}
+
+pub fn block_expression(tokens: &mut Stream<Token>) -> ParseResult<Spanned<BlockExpression>> {
+    todo!()
 }
 
 fn pratt(precedence: Precedence, tokens: &mut Stream<Token>) -> ParseResult<Expression> {
@@ -345,7 +356,6 @@ fn index(
     left: Expression,
     tokens: &mut Stream<Token>,
 ) -> ParseResult<Expression> {
-    println!("{}", tokens.len());
     use BasicToken::*;
 
     let left_span = left.span.clone();
@@ -355,7 +365,6 @@ fn index(
         format!("Expected to find {LBrack} as part of index expression"),
     )?;
 
-    println!("{}", tokens.len());
     let index = expression(tokens)?;
 
     let rbrack = tokens.peek_for(
@@ -455,43 +464,31 @@ fn group(tokens: &mut Stream<Token>) -> ParseResult<Expression> {
 }
 
 fn path(tokens: &mut Stream<Token>) -> ParseResult<Expression> {
-    let start = tokens.peek_span();
-
-    let is_global = match tokens.peek_for(BasicToken::Colon2, String::from("")) {
-        Ok(_) => true,
-        Err(_) => false,
-    };
-
-    let mut segments = Vec::new();
-
-    loop {
-        match tokens.peek_for(IdentifierToken, String::from("")) {
-            Ok(ident) => segments.push(ident),
-            Err(_) => {
-                return Err(Error::new(
-                    tokens.peek_span(),
-                    String::from("Expected identifier while parsing path expression"),
-                ))
-            }
-        };
-
-        match tokens.peek_for(BasicToken::Colon2, String::from("")) {
-            Ok(_) => { /* */ }
-            Err(_) => break,
-        };
-    }
-
-    let base = segments
-        .pop()
-        .expect("Path expression parser should always produce at least one name");
+    let spanned_path = parse::path(tokens)?;
 
     Ok(Expression::new(
-        ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Path {
-            is_global: is_global,
-            name: base,
-            segments: segments,
-        }),
-        Span::between(start, tokens.peek_span()),
+        ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Path(spanned_path.item)),
+        spanned_path.span,
+    ))
+}
+
+fn error_propagation(
+    precedence: Precedence,
+    left: Expression,
+    tokens: &mut Stream<Token>,
+) -> ParseResult<Expression> {
+    use BasicToken::*;
+
+    let found = tokens.peek_for(
+        Question,
+        format!("Expected to find error propagation operator {Question}"),
+    )?;
+
+    let left_span = left.span;
+
+    Ok(Expression::new(
+        ExpressionKind::WithoutBlock(ExpressionWithoutBlock::ErrorPropagation(Box::new(left))),
+        Span::between(left_span, found.span),
     ))
 }
 

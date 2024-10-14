@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 
+mod check;
 mod error;
 mod model;
 mod parse;

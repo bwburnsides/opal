@@ -21,17 +21,46 @@ pub enum Item {
 pub struct FunctionItem {
     name: Identifier,
     parameters: Vec<Parameter>,
-    return_type: TypeRepr,
+    return_type: Option<TypeRepr>,
     body: BlockExpression,
     span: Span,
 }
 
+impl FunctionItem {
+    pub fn new(
+        name: Identifier,
+        parameters: Vec<Parameter>,
+        return_type: Option<TypeRepr>,
+        body: BlockExpression,
+        span: Span,
+    ) -> Self {
+        Self {
+            name,
+            parameters,
+            return_type,
+            body,
+            span,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Parameter {
-    is_mutable: bool,
+    mutability: Mutability,
     name: Identifier,
     ty: TypeRepr,
     span: Span,
+}
+
+impl Parameter {
+    pub fn new(mutability: Mutability, name: Identifier, ty: TypeRepr, span: Span) -> Self {
+        Self {
+            mutability,
+            name,
+            ty,
+            span,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -41,11 +70,23 @@ pub struct TypeAliasItem {
     span: Span,
 }
 
+impl TypeAliasItem {
+    pub fn new(name: Identifier, ty: TypeRepr, span: Span) -> Self {
+        Self { name, ty, span }
+    }
+}
+
 #[derive(Debug)]
 pub struct StructItem {
     name: Identifier,
     fields: Vec<Field>,
     span: Span,
+}
+
+impl StructItem {
+    pub fn new(name: Identifier, fields: Vec<Field>, span: Span) -> Self {
+        Self { name, fields, span }
+    }
 }
 
 #[derive(Debug)]
@@ -55,11 +96,34 @@ pub struct Field {
     span: Span,
 }
 
+impl Field {
+    pub fn new(name: Identifier, ty: TypeRepr, span: Span) -> Self {
+        Self { name, ty, span }
+    }
+}
+
 #[derive(Debug)]
 pub struct EnumItem {
     name: Identifier,
-    variants: Vec<Identifier>,
+    variants: Vec<Variant>,
     span: Span,
+}
+
+impl EnumItem {
+    pub fn new(name: Identifier, variants: Vec<Variant>, span: Span) -> Self {
+        Self {
+            name,
+            variants,
+            span,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Variant {
+    Unit(Identifier),
+    Tuple(Identifier, Vec<TypeRepr>),
+    Struct(Identifier, Vec<Field>),
 }
 
 #[derive(Debug)]
@@ -70,12 +134,34 @@ pub struct ConstItem {
     span: Span,
 }
 
+impl ConstItem {
+    pub fn new(name: Identifier, ty: TypeRepr, value: Expression, span: Span) -> Self {
+        Self {
+            name,
+            ty,
+            value,
+            span,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct StaticItem {
     name: Identifier,
     ty: TypeRepr,
     value: Expression,
     span: Span,
+}
+
+impl StaticItem {
+    pub fn new(name: Identifier, ty: TypeRepr, value: Expression, span: Span) -> Self {
+        Self {
+            name,
+            ty,
+            value,
+            span,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -87,6 +173,23 @@ pub struct Expression {
 impl Expression {
     pub fn new(kind: ExpressionKind, span: Span) -> Self {
         Self { kind, span }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Path {
+    is_global: bool,
+    name: Identifier,
+    segments: Vec<Identifier>,
+}
+
+impl Path {
+    pub fn new(is_global: bool, name: Identifier, segments: Vec<Identifier>) -> Self {
+        Self {
+            is_global,
+            name,
+            segments,
+        }
     }
 }
 
@@ -105,13 +208,9 @@ pub enum ExpressionWithoutBlock {
     False,
     Unit,
 
-    Path {
-        is_global: bool,
-        name: Identifier,
-        segments: Vec<Identifier>,
-    },
+    Path(Path),
     Borrow {
-        is_mutable: bool,
+        mutability: Mutability,
         expr: Box<Expression>,
     },
     Dereference(Box<Expression>),
@@ -183,7 +282,13 @@ pub enum StatementKind {
 #[derive(Debug, Clone)]
 pub struct TypeRepr {
     kind: TypeReprKind,
-    span: Span,
+    pub span: Span,
+}
+
+impl TypeRepr {
+    pub fn new(kind: TypeReprKind, span: Span) -> Self {
+        Self { kind, span }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -198,10 +303,10 @@ pub enum TypeReprKind {
     Char,
     Str,
     Unit,
-    Array(Box<TypeRepr>, usize),
-    Reference(bool, Box<TypeRepr>),
+    Array(Box<TypeRepr>, u32),
+    Reference(Mutability, Box<TypeRepr>),
     Parenthesized(Box<TypeRepr>),
-    Path(bool, Identifier),
+    Path(Path),
 }
 
 #[derive(Debug, Clone)]
