@@ -7,11 +7,12 @@ use crate::stream::PeekFor;
 use crate::stream::Stream;
 
 pub fn statement(tokens: &mut Stream<Token>) -> ParseResult<Statement> {
-    use Token::*;
     use KeywordToken::*;
+    use Token::*;
 
     match tokens.peek() {
         Keyword(Let) => let_statement(tokens).map(Statement::Let),
+
         _ => todo!(),
     }
 }
@@ -53,5 +54,11 @@ pub fn let_statement(tokens: &mut Stream<Token>) -> ParseResult<Let> {
         ),
     )?;
 
-    Ok(Let::new(name, mutability, maybe_type, maybe_init, Span::between(start.span, end.span)),)
+    Ok(Let::new(
+        name,
+        mutability,
+        maybe_type,
+        maybe_init,
+        Span::between(start.span, end.span),
+    ))
 }

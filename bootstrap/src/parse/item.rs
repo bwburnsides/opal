@@ -9,6 +9,7 @@ pub fn item(tokens: &mut Stream<Token>) -> ParseResult<Item> {
     use Token::*;
 
     match tokens.peek() {
+        Keyword(Use) => use_item(tokens).map(Item::Use),
         Keyword(Fn) => function_item(tokens).map(Item::Function),
         Keyword(Type) => type_alias_item(tokens).map(Item::TypeAlias),
         Keyword(Struct) => struct_item(tokens).map(Item::Struct),
@@ -20,6 +21,25 @@ pub fn item(tokens: &mut Stream<Token>) -> ParseResult<Item> {
             format!("Expected to find item"),
         )),
     }
+}
+
+fn use_item(tokens: &mut Stream<Token>) -> ParseResult<UseItem> {
+    use BasicToken::*;
+    use KeywordToken::*;
+
+    let start = tokens.peek_for(
+        Use,
+        format!("Expected to find use item beginning with {Use}"),
+    )?;
+
+    let tree = use_tree(tokens)?;
+
+    let end = tokens.peek_for(
+        Semicolon,
+        format!("Expected to find {Semicolon} to conclude use item"),
+    )?;
+
+    Ok(UseItem::new(tree, Span::between(start.span, end.span)))
 }
 
 fn function_item(tokens: &mut Stream<Token>) -> ParseResult<FunctionItem> {
@@ -157,13 +177,13 @@ fn struct_item(tokens: &mut Stream<Token>) -> ParseResult<StructItem> {
         if let Token::Identifier(_) = tokens.peek() {
             let fd = field(tokens)?;
             fields.push(fd);
-    
+
             match tokens.peek_for(Comma, String::from("")) {
                 Ok(_) => { /* */ }
                 Err(_) => break,
             }
         } else {
-            break
+            break;
         }
     }
 
@@ -210,13 +230,13 @@ fn enum_item(tokens: &mut Stream<Token>) -> ParseResult<EnumItem> {
         if let Token::Identifier(_) = tokens.peek() {
             let vt = variant(tokens)?;
             variants.push(vt);
-    
+
             match tokens.peek_for(Comma, String::from("")) {
                 Ok(_) => { /* */ }
                 Err(_) => break,
             }
         } else {
-            break
+            break;
         }
     }
 
@@ -333,6 +353,108 @@ fn static_item(tokens: &mut Stream<Token>) -> ParseResult<StaticItem> {
         value,
         Span::between(start.span, end.span),
     ))
+}
+
+fn use_tree(tokens: &mut Stream<Token>) -> ParseResult<UseTree> {
+    use BasicToken::*;
+    use KeywordToken::*;
+    use Token::*;
+
+    // UseTree |= Path COLON2 ASTERISK
+    //         |  Path COLON2 LBRACE UseTree (COMMA UseTree)* COMMA? RBRACE
+    //         |  Path (AS IDENT)?
+    //
+    // With some left factoring...
+    //
+    // UseTree |= Path UseTreeTail
+    //
+    // UseTreeTail |= COLON2 ASTERISK
+    //             |  COLON2 LBRACE UseTree (COMMA UseTree)* COMMA? RBRACE
+    //             |  AS IDENT
+    //             |  EPSILON
+    //
+
+    let mut segments = Vec::new();
+    segments.push(tokens.peek_for(
+        IdentifierToken,
+        format!("Expected identifier while parsing use path"),
+    )?);
+
+    if let Basic(Colon2) = tokens.peek() {
+        tokens.pop();
+
+        loop {
+            match tokens.peek() {
+                Identifier(name) => {
+                    let popped = tokens.pop();
+                    segments.push(ast::Identifier::new(name, popped.span));
+                }
+                Basic(Asterisk) => {
+                    tokens.pop();
+                    break Ok(UseTree::Wildcard(UsePath::new(
+                        segments
+                            .pop()
+                            .expect("Use tree parser should always produce at least one name..."),
+                        segments,
+                    )));
+                }
+                Basic(LBrace) => {
+                    let mut trees = vec![use_tree(tokens)?];
+                    loop {
+                        if let Basic(Comma) = tokens.peek() {
+                            trees.push(use_tree(tokens)?);
+                        } else {
+                            break;
+                        }
+                    }
+                    let _ = tokens.peek_for(Comma, String::from(""));
+                    tokens.peek_for(RBrace, format!("Expected {RBrace} to conclude use tree"))?;
+                    break Ok(UseTree::Children(
+                        UsePath::new(
+                            segments.pop().expect(
+                                "Use tree parser should always produce at least one name...",
+                            ),
+                            segments,
+                        ),
+                        trees,
+                    ));
+                },
+                otherwise => break Err(
+                    Error::new(
+                        tokens.peek_span(),
+                        format!(
+                            "Expected identifier, {Asterisk}, or {LBrace} as part of use tree, but found {otherwise} instead"
+                        )
+                    )
+                )
+            }
+
+            match tokens.peek() {
+                Basic(Colon2) => {
+                    tokens.pop();
+                }
+                Keyword(As) => {
+                    tokens.pop();
+                    let name = tokens.peek_for(
+                        IdentifierToken,
+                        format!("Expected identifier following {As}"),
+                    )?;
+                    break Ok(UseTree::Rebind(
+                        UsePath::new(segments.pop().unwrap(), segments),
+                        name,
+                    ));
+                }
+                _epsilon => {
+                    break Ok(UseTree::Import(UsePath::new(
+                        segments.pop().unwrap(),
+                        segments,
+                    )))
+                }
+            }
+        }
+    } else {
+        todo!()
+    }
 }
 
 pub fn type_repr(tokens: &mut Stream<Token>) -> ParseResult<TypeRepr> {

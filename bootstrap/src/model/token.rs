@@ -27,6 +27,8 @@ pub enum KeywordToken {
     Bool,
     Char,
     Str,
+    Use,
+    As,
 }
 
 impl std::fmt::Display for KeywordToken {
@@ -59,6 +61,8 @@ impl std::fmt::Display for KeywordToken {
             Bool => write!(f, "bool"),
             Char => write!(f, "char"),
             Str => write!(f, "str"),
+            Use => write!(f, "use"),
+            As => write!(f, "as"),
         }
     }
 }
@@ -95,6 +99,8 @@ impl TryFrom<String> for KeywordToken {
             "bool" => Ok(Bool),
             "char" => Ok(Char),
             "str" => Ok(Str),
+            "use" => Ok(Use),
+            "as" => Ok(As),
             _ => Err(()),
         }
     }

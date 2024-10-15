@@ -10,12 +10,35 @@ pub type Module = Vec<Item>;
 
 #[derive(Debug)]
 pub enum Item {
+    Use(UseItem),
     Function(FunctionItem),
     TypeAlias(TypeAliasItem),
     Struct(StructItem),
     Enum(EnumItem),
     Const(ConstItem),
     Static(StaticItem),
+}
+
+pub type UseItem = Spanned<UseTree>;
+
+#[derive(Debug)]
+pub enum UseTree {
+    Import(UsePath),                 // use foo;
+    Wildcard(UsePath),               // use foo::*;
+    Children(UsePath, Vec<UseTree>), // use foo::{bar, baz};
+    Rebind(UsePath, Identifier),     // use foo as bar;
+}
+
+#[derive(Debug)]
+pub struct UsePath {
+    pub name: Identifier,
+    pub segments: Vec<Identifier>,
+}
+
+impl UsePath {
+    pub fn new(name: Identifier, segments: Vec<Identifier>) -> Self {
+        Self { name, segments }
+    }
 }
 
 #[derive(Debug)]

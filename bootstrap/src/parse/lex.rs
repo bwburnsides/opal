@@ -571,7 +571,7 @@ pub fn tokenize(source: &str) -> LexResult<Stream<Token>> {
             ' ' | '\n' => {
                 source.pop();
                 continue;
-            },
+            }
             '#' => {
                 source.pop();
                 loop {
@@ -579,7 +579,7 @@ pub fn tokenize(source: &str) -> LexResult<Stream<Token>> {
                         source.pop();
                     } else {
                         source.pop();
-                        break
+                        break;
                     }
                 }
             }

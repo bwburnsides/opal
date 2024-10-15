@@ -169,10 +169,13 @@ pub fn block_expression(tokens: &mut Stream<Token>) -> ParseResult<Spanned<Block
     //
     // TODO: For now, just going to parse as LBRACE <statement>* RBRACE
 
-    use Token::*;
     use BasicToken::*;
+    use Token::*;
 
-    let start = tokens.peek_for(LBrace, format!("Expected {LBrace} to begin block expression"))?;
+    let start = tokens.peek_for(
+        LBrace,
+        format!("Expected {LBrace} to begin block expression"),
+    )?;
 
     let mut statements = Vec::new();
 
@@ -180,9 +183,12 @@ pub fn block_expression(tokens: &mut Stream<Token>) -> ParseResult<Spanned<Block
         match tokens.peek() {
             Basic(RBrace) => {
                 let end = tokens.pop();
-                break Ok(Spanned::new(statements, Span::between(start.span, end.span)))
-            },
-            _ => statements.push(parse::stmt::statement(tokens)?)
+                break Ok(Spanned::new(
+                    statements,
+                    Span::between(start.span, end.span),
+                ));
+            }
+            _ => statements.push(parse::stmt::statement(tokens)?),
         }
     }
 }
