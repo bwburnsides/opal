@@ -1,6 +1,7 @@
 use crate::model::*;
 use crate::parse::expr::*;
 use crate::parse::lex;
+use crate::parse::stmt::*;
 use crate::span::{Span, Spanned};
 use crate::stream::*;
 
@@ -162,7 +163,7 @@ fn parse_integer_literal() {
 
     let expr = expression(&mut tokens).unwrap();
 
-    if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) = expr.kind {
+    if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) = expr.item {
         assert!(true);
     } else {
         assert!(false);
@@ -185,16 +186,16 @@ fn parse_add_expr() {
         left,
         op,
         right,
-    )) = expr.kind
+    )) = expr.item
     {
         assert_eq!(op, ArithmeticOrLogicalOperator::Plus);
 
-        match left.kind {
+        match left.item {
             ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) => { /* */ }
             _ => assert!(false),
         }
 
-        match right.kind {
+        match right.item {
             ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(2)) => assert!(true),
             _ => assert!(false),
         }
@@ -221,11 +222,11 @@ fn parse_add_assoc_expr() {
         left,
         op,
         right,
-    )) = expr.kind
+    )) = expr.item
     {
         assert_eq!(op, ArithmeticOrLogicalOperator::Plus);
 
-        match left.kind {
+        match left.item {
             ExpressionKind::WithoutBlock(ExpressionWithoutBlock::ArithmeticOrLogical(
                 left_inner,
                 op_inner,
@@ -234,10 +235,10 @@ fn parse_add_assoc_expr() {
                 assert_eq!(op_inner, ArithmeticOrLogicalOperator::Plus);
 
                 if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) =
-                    left_inner.kind
+                    left_inner.item
                 {
                     if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(2)) =
-                        right_inner.kind
+                        right_inner.item
                     {
                         assert!(true)
                     } else {
@@ -250,7 +251,7 @@ fn parse_add_assoc_expr() {
             _ => assert!(false),
         }
 
-        match right.kind {
+        match right.item {
             ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(1)) => assert!(true),
             _ => assert!(false),
         }
@@ -272,20 +273,20 @@ fn parse_assign_expr() {
     let expr = expression(&mut tokens).unwrap();
 
     if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Assignment(left, op, right)) =
-        expr.kind
+        expr.item
     {
         assert_eq!(op, AssignmentOperator::Equal);
 
-        if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Path {
+        if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Path(Path {
             is_global: false,
             name,
             segments,
-        }) = left.kind
+        })) = left.item
         {
             assert_eq!(name.item, "foo".to_owned());
             assert_eq!(segments.len(), 0);
 
-            if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) = right.kind {
+            if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) = right.item {
                 assert!(true);
             } else {
                 assert!(false);
@@ -314,5 +315,170 @@ fn parse_assign_expr() {
 //         assert_eq!(op, AssignmentOperator::Equal);
 
 //         if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Assignment(left_inner, op_inner, right_inner)) =
+//     }
+// }
+
+#[test]
+fn parse_let_statement_bare() {
+    use BasicToken::*;
+    use KeywordToken::*;
+    use Token::*;
+
+    let mut tokens: Stream<Token> = vec![
+        Spanned::empty(Keyword(Let)),
+        Spanned::empty(Identifier("foo".to_owned())),
+        Spanned::empty(Basic(Semicolon)),
+    ]
+    .into_iter()
+    .collect();
+
+    let stmt = statement(&mut tokens).unwrap();
+
+    match stmt {
+        Statement::Let(inner) => {
+            assert_eq!(inner.name.item, "foo".to_owned());
+            assert_eq!(inner.mutability, Mutability::Immutable);
+            assert_eq!(inner.ty, None);
+            assert_eq!(inner.initializer, None);
+        }
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn parse_let_statement_bare_mut() {
+    use BasicToken::*;
+    use KeywordToken::*;
+    use Token::*;
+
+    let mut tokens: Stream<Token> = vec![
+        Spanned::empty(Keyword(Let)),
+        Spanned::empty(Keyword(Mut)),
+        Spanned::empty(Identifier("foo".to_owned())),
+        Spanned::empty(Basic(Semicolon)),
+    ]
+    .into_iter()
+    .collect();
+
+    let stmt = statement(&mut tokens).unwrap();
+
+    match stmt {
+        Statement::Let(inner) => {
+            assert_eq!(inner.name.item, "foo".to_owned());
+            assert_eq!(inner.mutability, Mutability::Mutable);
+            assert_eq!(inner.ty, None);
+            assert_eq!(inner.initializer, None);
+        }
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn parse_let_statement_typed() {
+    use BasicToken::*;
+    use KeywordToken::*;
+    use Token::*;
+
+    let mut tokens: Stream<Token> = vec![
+        Spanned::empty(Keyword(Let)),
+        Spanned::empty(Identifier("foo".to_owned())),
+        Spanned::empty(Basic(Colon)),
+        Spanned::empty(Identifier("Foo".to_owned())),
+        Spanned::empty(Basic(Semicolon)),
+    ]
+    .into_iter()
+    .collect();
+
+    let stmt = statement(&mut tokens).unwrap();
+
+    match stmt {
+        Statement::Let(inner) => {
+            assert_eq!(inner.name.item, "foo".to_owned());
+            assert_eq!(inner.mutability, Mutability::Immutable);
+            assert_eq!(
+                inner.ty,
+                Some(Spanned::empty(TypeReprKind::Path(Path::new(
+                    false,
+                    Spanned::empty("Foo".to_owned()),
+                    Vec::new(),
+                ))))
+            );
+            assert_eq!(inner.initializer, None);
+        }
+        _ => assert!(false),
+    }
+}
+
+#[test]
+fn parse_let_statement_typed_mut() {
+    use BasicToken::*;
+    use KeywordToken::*;
+    use Token::*;
+
+    let mut tokens: Stream<Token> = vec![
+        Spanned::empty(Keyword(Let)),
+        Spanned::empty(Keyword(Mut)),
+        Spanned::empty(Identifier("foo".to_owned())),
+        Spanned::empty(Basic(Colon)),
+        Spanned::empty(Identifier("Foo".to_owned())),
+        Spanned::empty(Basic(Semicolon)),
+    ]
+    .into_iter()
+    .collect();
+
+    let stmt = statement(&mut tokens).unwrap();
+
+    match stmt {
+        Statement::Let(inner) => {
+            assert_eq!(inner.name.item, "foo".to_owned());
+            assert_eq!(inner.mutability, Mutability::Mutable);
+            assert_eq!(
+                inner.ty,
+                Some(Spanned::empty(TypeReprKind::Path(Path::new(
+                    false,
+                    Spanned::empty("Foo".to_owned()),
+                    Vec::new(),
+                ))))
+            );
+            assert_eq!(inner.initializer, None);
+        }
+        _ => assert!(false),
+    }
+}
+
+// #[test]
+// fn parse_let_statement_initialized() {
+//     use BasicToken::*;
+//     use KeywordToken::*;
+//     use LiteralToken::*;
+//     use Token::*;
+
+//     let mut tokens: Stream<Token> = vec![
+//         Spanned::empty(Keyword(Let)),
+//         Spanned::empty(Identifier("foo".to_owned())),
+//         Spanned::empty(Basic(Equal)),
+//         Spanned::empty(Literal(Integer(5))),
+//         Spanned::empty(Basic(Semicolon)),
+//     ]
+//     .into_iter()
+//     .collect();
+
+//     let stmt = statement(&mut tokens).unwrap();
+
+//     match stmt.item {
+//         StatementKind::Let(inner) => {
+//             assert_eq!(inner.name.item, "foo".to_owned());
+//             assert_eq!(inner.mutability, Mutability::Immutable);
+//             assert_eq!(
+//                 inner.ty,
+//                 Some(Spanned::empty(TypeReprKind::Path(Path::new(
+//                     false,
+//                     Spanned::empty("Foo".to_owned()),
+//                     Vec::new(),
+//                 ))))
+//             );
+//             assert_eq!(inner.initializer, None);
+//         }
+//         _ => assert!(false),
 //     }
 // }

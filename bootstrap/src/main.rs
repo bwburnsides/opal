@@ -8,13 +8,13 @@ mod parse;
 mod span;
 mod stream;
 
+type Foo = u8;
+type Bar = u8;
+
 fn main() {
-    let mut tokens = parse::tokenize("foo[[1,2]]").unwrap();
+    let source = std::fs::read_to_string("opal_tests/enums.opal").unwrap();
+    let mut tokens = parse::tokenize(&source).unwrap();
+    let ast = parse::module(&mut tokens).unwrap();
 
-    let result = parse::expression(&mut tokens);
-
-    match result {
-        Ok(expr) => println!("{expr:#?}"),
-        Err(err) => println!("{err:#?}"),
-    }
+    println!("{:#?}", ast);
 }

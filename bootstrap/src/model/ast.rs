@@ -6,8 +6,9 @@ use crate::model::*;
 
 pub type Identifier = Spanned<String>;
 
-pub type Jewel = Vec<Item>;
+pub type Module = Vec<Item>;
 
+#[derive(Debug)]
 pub enum Item {
     Function(FunctionItem),
     TypeAlias(TypeAliasItem),
@@ -164,23 +165,13 @@ impl StaticItem {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Expression {
-    pub kind: ExpressionKind,
-    pub span: Span,
-}
+pub type Expression = Spanned<ExpressionKind>;
 
-impl Expression {
-    pub fn new(kind: ExpressionKind, span: Span) -> Self {
-        Self { kind, span }
-    }
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Path {
-    is_global: bool,
-    name: Identifier,
-    segments: Vec<Identifier>,
+    pub is_global: bool,
+    pub name: Identifier,
+    pub segments: Vec<Identifier>,
 }
 
 impl Path {
@@ -193,13 +184,13 @@ impl Path {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ExpressionKind {
     WithoutBlock(ExpressionWithoutBlock),
     WithBlock(ExpressionWithBlock),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ExpressionWithoutBlock {
     Character(char),
     String(String),
@@ -234,7 +225,7 @@ pub enum ExpressionWithoutBlock {
     Continue,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ExpressionWithBlock {
     Block(BlockExpression),
     If(IfExpression),
@@ -248,50 +239,55 @@ pub enum ExpressionWithBlock {
 
 pub type BlockExpression = Vec<Statement>;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct IfExpression {
     predicate: Box<Expression>,
     then_block: Spanned<BlockExpression>,
     else_block: Option<Spanned<Either<BlockExpression, Box<IfExpression>>>>,
 }
 
-#[derive(Debug, Clone)]
-pub struct Statement {
-    kind: StatementKind,
-    span: Span,
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Mutability {
     Mutable,
     Immutable,
 }
 
-#[derive(Debug, Clone)]
-pub enum StatementKind {
-    Let {
+#[derive(Debug, Clone, PartialEq)]
+pub enum Statement {
+    Let(Let),
+    Expression(Expression),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Let {
+    pub name: Identifier,
+    pub mutability: Mutability,
+    pub ty: Option<TypeRepr>,
+    pub initializer: Option<Expression>,
+    pub span: Span,
+}
+
+impl Let {
+    pub fn new(
         name: Identifier,
         mutability: Mutability,
         ty: Option<TypeRepr>,
         initializer: Option<Expression>,
-    },
-    ExpressionWithBlock(ExpressionWithBlock),
-    ExpressionWithoutBlock(ExpressionWithoutBlock),
-}
-
-#[derive(Debug, Clone)]
-pub struct TypeRepr {
-    kind: TypeReprKind,
-    pub span: Span,
-}
-
-impl TypeRepr {
-    pub fn new(kind: TypeReprKind, span: Span) -> Self {
-        Self { kind, span }
+        span: Span,
+    ) -> Self {
+        Self {
+            name,
+            mutability,
+            ty,
+            initializer,
+            span,
+        }
     }
 }
 
-#[derive(Debug, Clone)]
+pub type TypeRepr = Spanned<TypeReprKind>;
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypeReprKind {
     U8,
     I8,
@@ -309,7 +305,7 @@ pub enum TypeReprKind {
     Path(Path),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct WhenArm {
     case: TypeRepr,
     guard: Option<Box<Expression>>,
@@ -317,7 +313,7 @@ pub struct WhenArm {
     span: Span,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum NegateOperator {
     Arithmetic,
     Logical,
@@ -371,7 +367,7 @@ impl From<ArithmeticOrLogicalOperator> for BasicToken {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ComparisonOperator {
     Eq,
     Ne,
@@ -413,7 +409,7 @@ impl From<ComparisonOperator> for BasicToken {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LazyBooleanOperator {
     Or,
     And,

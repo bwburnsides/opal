@@ -1,0 +1,15 @@
+type Foo1 = u8;
+type Foo2 = i8;
+type Foo3 = u16;
+type Foo4 = i16;
+type Foo5 = u32;
+type Foo6 = i32;
+type Foo7 = bool;
+type Foo8 = char;
+type Foo9 = str;
+type Foo10 = Unit;
+type Foo11 = [u8; 4];
+type Foo12 = &u8;
+type Foo13 = &mut u8;
+type Foo14 = (u8);
+type Foo15 = ::Foo1;

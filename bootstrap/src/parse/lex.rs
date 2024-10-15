@@ -571,6 +571,17 @@ pub fn tokenize(source: &str) -> LexResult<Stream<Token>> {
             ' ' | '\n' => {
                 source.pop();
                 continue;
+            },
+            '#' => {
+                source.pop();
+                loop {
+                    if source.peek() != '\n' {
+                        source.pop();
+                    } else {
+                        source.pop();
+                        break
+                    }
+                }
             }
             _ => tokens.push(tokenize_basic(&mut source)?),
         };

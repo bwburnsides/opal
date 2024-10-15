@@ -129,12 +129,62 @@ impl From<ArithmeticOrLogicalOperator> for Precedence {
     }
 }
 
+pub fn peek_expression(tokens: &Stream<Token>) -> bool {
+    use BasicToken::*;
+    use KeywordToken::*;
+    use LiteralToken::*;
+    use Token::*;
+
+    match tokens.peek() {
+        Basic(LParen) => true,
+        Basic(Hyphen) => true,
+        Basic(Bang) => true,
+        Basic(Colon2) => true,
+        Basic(Ampersand) => true, // TODO: Not parsing borrow expressions yet
+        Basic(Asterisk) => true,  // TODO: Not parsing dereference expressions yet
+        Identifier(_) => true,
+        Keyword(Return) => true,
+        Keyword(Break) => true,
+        Keyword(Continue) => true,
+        Keyword(True) => true,
+        Keyword(False) => true,
+        Keyword(Unit) => true,
+        Literal(Integer(_)) => true,
+        Literal(Character(_)) => true,
+        Literal(String(_)) => true,
+        _ => false,
+    }
+}
+
 pub fn expression(tokens: &mut Stream<Token>) -> ParseResult<Expression> {
     pratt(Precedence::Minimum, tokens)
 }
 
 pub fn block_expression(tokens: &mut Stream<Token>) -> ParseResult<Spanned<BlockExpression>> {
-    todo!()
+    // <block-expression> |= LBRACE <statements>? RBRACE
+    //
+    // <statements> |= <statement>+
+    //              |  <statement>+ <expr-without-block>
+    //              |  <expr-without-block>
+    //
+    // TODO: For now, just going to parse as LBRACE <statement>* RBRACE
+
+    use Token::*;
+    use BasicToken::*;
+
+    let start = tokens.peek_for(LBrace, format!("Expected {LBrace} to begin block expression"))?;
+
+    let mut statements = Vec::new();
+
+    loop {
+        match tokens.peek() {
+            Basic(RBrace) => {
+                let end = tokens.pop();
+                break Ok(Spanned::new(statements, Span::between(start.span, end.span)))
+            },
+            _ => statements.push(parse::stmt::statement(tokens)?)
+        }
+    }
 }
 
 fn pratt(precedence: Precedence, tokens: &mut Stream<Token>) -> ParseResult<Expression> {
@@ -498,24 +548,44 @@ fn unconditional(tokens: &mut Stream<Token>) -> ParseResult<Expression> {
     let start = tokens.peek_span();
 
     match tokens.peek_for(Return, String::from("")) {
-        Ok(_) => {
-            let expr = pratt(Precedence::Return, tokens)?;
-            return Ok(Expression::new(
-                ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Return(Some(Box::new(expr)))),
-                Span::between(start, tokens.peek_span()),
-            ));
-        }
+        Ok(_) => match peek_expression(tokens) {
+            true => {
+                let expr = pratt(Precedence::Return, tokens)?;
+                return Ok(Expression::new(
+                    ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Return(Some(Box::new(
+                        expr,
+                    )))),
+                    Span::between(start, tokens.peek_span()),
+                ));
+            }
+            false => {
+                return Ok(Expression::new(
+                    ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Return(None)),
+                    Span::between(start, tokens.peek_span()),
+                ))
+            }
+        },
         Err(_) => { /* Try next unconditional expressions */ }
     };
 
     match tokens.peek_for(Break, String::from("")) {
-        Ok(_) => {
-            let expr = pratt(Precedence::Return, tokens)?;
-            return Ok(Expression::new(
-                ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Break(Some(Box::new(expr)))),
-                Span::between(start, tokens.peek_span()),
-            ));
-        }
+        Ok(_) => match peek_expression(tokens) {
+            true => {
+                let expr = pratt(Precedence::Return, tokens)?;
+                return Ok(Expression::new(
+                    ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Break(Some(Box::new(
+                        expr,
+                    )))),
+                    Span::between(start, tokens.peek_span()),
+                ));
+            }
+            false => {
+                return Ok(Expression::new(
+                    ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Break(None)),
+                    Span::between(start, tokens.peek_span()),
+                ));
+            }
+        },
         Err(_) => { /* Try next unconditional expressions */ }
     };
 

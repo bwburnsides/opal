@@ -151,38 +151,26 @@ fn struct_item(tokens: &mut Stream<Token>) -> ParseResult<StructItem> {
         ),
     )?;
 
-    let mut expect_rbrace = false;
     let mut fields = Vec::new();
 
     loop {
-        match tokens.peek_for(RBrace, String::from("")) {
-            Ok(_) => break,
-            _ => {
-                if expect_rbrace {
-                    return Err(Error::new(
-                        tokens.peek_span(),
-                        format!(
-                            "Expected to find {RBrace} to conclude struct item {}",
-                            name.item
-                        ),
-                    ));
-                }
+        if let Token::Identifier(_) = tokens.peek() {
+            let fd = field(tokens)?;
+            fields.push(fd);
+    
+            match tokens.peek_for(Comma, String::from("")) {
+                Ok(_) => { /* */ }
+                Err(_) => break,
             }
-        }
-
-        let fd = field(tokens)?;
-        fields.push(fd);
-
-        match tokens.peek_for(Comma, String::from("")) {
-            Ok(_) => { /* */ }
-            Err(_) => expect_rbrace = true,
+        } else {
+            break
         }
     }
 
     let end = tokens.peek_for(
         RBrace,
         format!(
-            "Expected to find {RBrace} to conclude struct item {}",
+            "Expected to find {RBrace} to conclude struct item `{}`",
             name.item
         ),
     )?;
@@ -216,37 +204,26 @@ fn enum_item(tokens: &mut Stream<Token>) -> ParseResult<EnumItem> {
         ),
     )?;
 
-    let mut expect_rbrace = false;
     let mut variants = Vec::new();
 
     loop {
-        match tokens.peek_for(RBrace, String::from("")) {
-            Ok(_) => break,
-            _ => {
-                if expect_rbrace {
-                    return Err(Error::new(
-                        tokens.peek_span(),
-                        format!(
-                            "Expected to find {RBrace} to conclude enum item {}",
-                            name.item
-                        ),
-                    ));
-                }
+        if let Token::Identifier(_) = tokens.peek() {
+            let vt = variant(tokens)?;
+            variants.push(vt);
+    
+            match tokens.peek_for(Comma, String::from("")) {
+                Ok(_) => { /* */ }
+                Err(_) => break,
             }
-        }
-
-        let vt = variant(tokens)?;
-        variants.push(vt);
-
-        match tokens.peek_for(Comma, String::from("")) {
-            Ok(_) => { /* */ }
-            Err(_) => expect_rbrace = true,
+        } else {
+            break
         }
     }
+
     let end = tokens.peek_for(
         RBrace,
         format!(
-            "Expected to find {RBrace} to conclude enum item {}",
+            "Expected to find {RBrace} to conclude enum item `{}`",
             name.item
         ),
     )?;
@@ -358,7 +335,7 @@ fn static_item(tokens: &mut Stream<Token>) -> ParseResult<StaticItem> {
     ))
 }
 
-fn type_repr(tokens: &mut Stream<Token>) -> ParseResult<TypeRepr> {
+pub fn type_repr(tokens: &mut Stream<Token>) -> ParseResult<TypeRepr> {
     use BasicToken::*;
     use KeywordToken::*;
     use Token::*;
@@ -495,6 +472,7 @@ fn variant(tokens: &mut Stream<Token>) -> ParseResult<Variant> {
 
     match tokens.peek() {
         Basic(LParen) => {
+            tokens.pop();
             let mut expect_rparen = false;
             let mut elements = Vec::new();
 
@@ -526,6 +504,7 @@ fn variant(tokens: &mut Stream<Token>) -> ParseResult<Variant> {
             Ok(Variant::Tuple(name, elements))
         }
         Basic(LBrace) => {
+            tokens.pop();
             let mut expect_rbrace = false;
             let mut fields = Vec::new();
 
@@ -557,5 +536,30 @@ fn variant(tokens: &mut Stream<Token>) -> ParseResult<Variant> {
             Ok(Variant::Struct(name, fields))
         }
         _ => Ok(Variant::Unit(name)),
+    }
+}
+
+pub fn peek_type_repr(tokens: &Stream<Token>) -> bool {
+    use BasicToken::*;
+    use KeywordToken::*;
+    use Token::*;
+
+    match tokens.peek() {
+        Keyword(U8) => true,
+        Keyword(I8) => true,
+        Keyword(U16) => true,
+        Keyword(I16) => true,
+        Keyword(U32) => true,
+        Keyword(I32) => true,
+        Keyword(Bool) => true,
+        Keyword(Char) => true,
+        Keyword(Str) => true,
+        Keyword(Unit) => true,
+        Basic(LBrack) => true,
+        Basic(Ampersand) => true,
+        Basic(LParen) => true,
+        Basic(Colon2) => true,
+        Identifier(_) => true,
+        _ => false,
     }
 }

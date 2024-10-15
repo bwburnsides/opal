@@ -1,6 +1,7 @@
 mod expr;
 mod item;
 mod lex;
+mod stmt;
 
 #[cfg(test)]
 mod test;
@@ -78,7 +79,7 @@ impl PeekFor<IntegerLiteralToken, ParseResult<u32>> for Stream<Token> {
     }
 }
 
-pub fn jewel(tokens: &mut Stream<Token>) -> ParseResult<Jewel> {
+pub fn module(tokens: &mut Stream<Token>) -> ParseResult<Module> {
     let mut items = Vec::new();
 
     loop {
