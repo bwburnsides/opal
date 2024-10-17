@@ -29,6 +29,7 @@ pub enum KeywordToken {
     Str,
     Use,
     As,
+    Mod,
 }
 
 impl std::fmt::Display for KeywordToken {
@@ -63,6 +64,7 @@ impl std::fmt::Display for KeywordToken {
             Str => write!(f, "str"),
             Use => write!(f, "use"),
             As => write!(f, "as"),
+            Mod => write!(f, "mod"),
         }
     }
 }
@@ -101,6 +103,7 @@ impl TryFrom<String> for KeywordToken {
             "str" => Ok(Str),
             "use" => Ok(Use),
             "as" => Ok(As),
+            "mod" => Ok(Mod),
             _ => Err(()),
         }
     }

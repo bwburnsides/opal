@@ -79,7 +79,7 @@ impl PeekFor<IntegerLiteralToken, ParseResult<u32>> for Stream<Token> {
     }
 }
 
-pub fn module(tokens: &mut Stream<Token>) -> ParseResult<Module> {
+pub fn geode(tokens: &mut Stream<Token>) -> ParseResult<Geode> {
     let mut items = Vec::new();
 
     loop {

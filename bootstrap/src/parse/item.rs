@@ -9,6 +9,7 @@ pub fn item(tokens: &mut Stream<Token>) -> ParseResult<Item> {
     use Token::*;
 
     match tokens.peek() {
+        Keyword(Mod) => mod_item(tokens).map(Item::Mod),
         Keyword(Use) => use_item(tokens).map(Item::Use),
         Keyword(Fn) => function_item(tokens).map(Item::Function),
         Keyword(Type) => type_alias_item(tokens).map(Item::TypeAlias),
@@ -20,6 +21,29 @@ pub fn item(tokens: &mut Stream<Token>) -> ParseResult<Item> {
             tokens.peek_span(),
             format!("Expected to find item"),
         )),
+    }
+}
+
+fn mod_item(tokens: &mut Stream<Token>) -> ParseResult<ModItem> {
+    use BasicToken::*;
+    use KeywordToken::*;
+
+    let start = tokens.peek_for(Mod, format!("Expected to find mod item beginning with {Mod}"))?;
+    let name = tokens.peek_for(IdentifierToken, format!("Expected module name to follow {Mod}"))?;
+
+    match tokens.peek_for(Semicolon, String::from("")) {
+        Ok(_) => Ok(ModItem::new(name, None)),
+        Err(_) => {
+            tokens.peek_for(LBrace, format!("Expected {LBrace} following module name {}", name.item))?;
+
+            let mut items = Vec::new();
+            loop {
+                match tokens.peek_for(RBrace, String::from("")) {
+                    Ok(_) => break Ok(ModItem::new(name, Some(items))),
+                    Err(_) => items.push(item(tokens)?)
+                }
+            }
+        }
     }
 }
 
@@ -105,7 +129,7 @@ fn function_item(tokens: &mut Stream<Token>) -> ParseResult<FunctionItem> {
         function_name,
         parameters,
         return_type,
-        body.item,
+        Some(body.item),  // TODO: Make body optional
         Span::between(start.span, body.span),
     ))
 }
@@ -399,9 +423,11 @@ fn use_tree(tokens: &mut Stream<Token>) -> ParseResult<UseTree> {
                     )));
                 }
                 Basic(LBrace) => {
+                    tokens.pop();
                     let mut trees = vec![use_tree(tokens)?];
                     loop {
                         if let Basic(Comma) = tokens.peek() {
+                            tokens.pop();
                             trees.push(use_tree(tokens)?);
                         } else {
                             break;
@@ -453,7 +479,23 @@ fn use_tree(tokens: &mut Stream<Token>) -> ParseResult<UseTree> {
             }
         }
     } else {
-        todo!()
+        match tokens.peek() {
+            Keyword(As) => {
+                tokens.pop();
+                let name = tokens.peek_for(
+                    IdentifierToken,
+                    format!("Expected identifier following {As}"),
+                )?;
+                Ok(UseTree::Rebind(
+                    UsePath::new(segments.pop().unwrap(), segments),
+                    name,
+                ))
+            }
+            _epsilon => Ok(UseTree::Import(UsePath::new(
+                segments.pop().unwrap(),
+                segments,
+            ))),
+        }
     }
 }
 

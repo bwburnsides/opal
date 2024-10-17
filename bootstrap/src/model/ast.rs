@@ -5,11 +5,11 @@ use super::BasicToken;
 use crate::model::*;
 
 pub type Identifier = Spanned<String>;
-
-pub type Module = Vec<Item>;
+pub type Geode = Vec<Item>;
 
 #[derive(Debug)]
 pub enum Item {
+    Mod(ModItem),
     Use(UseItem),
     Function(FunctionItem),
     TypeAlias(TypeAliasItem),
@@ -17,6 +17,18 @@ pub enum Item {
     Enum(EnumItem),
     Const(ConstItem),
     Static(StaticItem),
+}
+
+#[derive(Debug)]
+pub struct ModItem {
+    name: Identifier,
+    items: Option<Vec<Item>>,
+}
+
+impl ModItem {
+    pub fn new(name: Identifier, items: Option<Vec<Item>>) -> Self {
+        Self {name, items}
+    }
 }
 
 pub type UseItem = Spanned<UseTree>;
@@ -46,7 +58,7 @@ pub struct FunctionItem {
     name: Identifier,
     parameters: Vec<Parameter>,
     return_type: Option<TypeRepr>,
-    body: BlockExpression,
+    body: Option<BlockExpression>,
     span: Span,
 }
 
@@ -55,7 +67,7 @@ impl FunctionItem {
         name: Identifier,
         parameters: Vec<Parameter>,
         return_type: Option<TypeRepr>,
-        body: BlockExpression,
+        body: Option<BlockExpression>,
         span: Span,
     ) -> Self {
         Self {

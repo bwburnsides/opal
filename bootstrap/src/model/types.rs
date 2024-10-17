@@ -1,3 +1,6 @@
+use crate::model::Mutability;
+
+#[derive(Debug, PartialEq)]
 pub enum Type {
     U8,
     I8,
@@ -10,7 +13,7 @@ pub enum Type {
     Str,
     Unit,
     Array(Box<Type>, u32),
-    Reference(bool, Box<Type>),
+    Reference(Mutability, Box<Type>),
     Function,
     String, // For user defined types
 }

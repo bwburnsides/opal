@@ -2,19 +2,18 @@
 #![allow(unused_variables)]
 
 mod check;
+mod driver;
 mod error;
 mod model;
 mod parse;
+mod scope;
 mod span;
 mod stream;
 
-type Foo = u8;
-type Bar = u8;
-
 fn main() {
-    let source = std::fs::read_to_string("opal_tests/use_items.opal").unwrap();
+    let source = std::fs::read_to_string("opal_tests/mod_test.opal").unwrap();
     let mut tokens = parse::tokenize(&source).unwrap();
-    let ast = parse::module(&mut tokens).unwrap();
+    let ast = parse::geode(&mut tokens).unwrap();
 
     println!("{:#?}", ast);
 }
