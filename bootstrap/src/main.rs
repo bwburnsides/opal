@@ -6,7 +6,7 @@ use std::io::Write;
 
 use diagnostic::GraphvizRenderer;
 
-mod check;
+mod semantic;
 mod diagnostic;
 mod driver;
 mod error;
@@ -15,6 +15,7 @@ mod parse;
 mod scope;
 mod span;
 mod stream;
+mod lower;
 
 fn main() {
     let source = std::fs::read_to_string("opal_tests/enums.opal").unwrap();

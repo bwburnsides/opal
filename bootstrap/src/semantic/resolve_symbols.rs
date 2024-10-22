@@ -20,3 +20,7 @@
 // }
 
 // // pub fn build_use_tree_symbol(tree: UseTree) ->
+
+pub fn resolve_geode() {
+    
+}

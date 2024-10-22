@@ -8,12 +8,13 @@ pub enum SymbolError {
     Undefined,
 }
 
-pub struct SymbolTable<'a> {
+#[derive(Debug, Clone)]
+pub struct SymbolTable {
     symbols: HashMap<String, Spanned<Symbol>>,
-    parent: Option<&'a SymbolTable<'a>>,
+    parent: Option<Box<SymbolTable>>,
 }
 
-impl<'a> SymbolTable<'a> {
+impl SymbolTable {
     pub fn core_table() -> Self {
         Self {
             symbols: HashMap::new(),
@@ -21,13 +22,13 @@ impl<'a> SymbolTable<'a> {
         }
     }
 
-    pub fn std_table(core: &'a SymbolTable) -> Self {
+    pub fn std_table() -> Self {
         // This is a "prelude" of sorts that contains intrinsics via the core table and
         // standard library symbols introduced here.
 
         Self {
             symbols: HashMap::new(),
-            parent: Some(core),
+            parent: Some(Box::new(SymbolTable::core_table())),
         }
     }
 
@@ -44,7 +45,7 @@ impl<'a> SymbolTable<'a> {
         // If it doesn't, the symbol is undefined.
 
         self.local(name).or_else(|_err| {
-            self.parent
+            self.parent.clone()
                 .map_or(Result::Err(SymbolError::Undefined), |p| p.lookup(name))
         })
     }

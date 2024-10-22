@@ -1,4 +1,4 @@
-use crate::check::infer_type::*;
+use crate::semantic::infer::*;
 use crate::model::*;
 
 #[test]

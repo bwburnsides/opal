@@ -1,10 +1,9 @@
-use crate::span::Spanned;
+use crate::span::{Spanned, Span};
 use super::{Expression, ExpressionKind, Type};
 
-pub type TypedExpression = Spanned<TypedExpressionKind>;
 
-pub struct TypedExpressionKind {
-    ty: Type,
-    expression: ExpressionKind
+pub struct TypedExpression {
+    pub ty: Type,
+    pub kind: ExpressionKind,
+    pub span: Span,
 }
-

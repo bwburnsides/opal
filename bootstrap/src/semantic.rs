@@ -1,5 +1,5 @@
-mod check_type;
-mod infer_type;
+mod typeck;
+mod infer;
 mod resolve_symbols;
 
 pub enum SemanticError {
