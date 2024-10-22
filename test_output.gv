@@ -1,0 +1,15 @@
+digraph OpalGeode {
+    geode [label="Geode: DUMMY_NAME" shape="Mrecord" style="filled" fillcolor="lightpink" ]
+    enum_0 [label="Enum: EmptyEnum
+label =<<table border="0" cellborder="0" cellpadding="3" bgcolor="white"><tr><td bgcolor="black" align="center" colspan="2"><font color="white">State #9</font></td></tr><tr><td align="left" port="r2">&#40;2&#41; e -&gt; r &bull;</td><td bgcolor="grey" align="right">$</td></tr></table>> ];" shape="Mrecord" style="filled" fillcolor="aquamarine" ]
+    enum_1 [label="Enum: UnitVariant
+label =<<table border="0" cellborder="0" cellpadding="3" bgcolor="white"><tr><td bgcolor="black" align="center" colspan="2"><font color="white">State #9</font></td></tr><tr><td align="left" port="r2">&#40;2&#41; e -&gt; r &bull;</td><td bgcolor="grey" align="right">$</td></tr></table>> ];" shape="Mrecord" style="filled" fillcolor="aquamarine" ]
+    enum_2 [label="Enum: TupleVariant
+label =<<table border="0" cellborder="0" cellpadding="3" bgcolor="white"><tr><td bgcolor="black" align="center" colspan="2"><font color="white">State #9</font></td></tr><tr><td align="left" port="r2">&#40;2&#41; e -&gt; r &bull;</td><td bgcolor="grey" align="right">$</td></tr></table>> ];" shape="Mrecord" style="filled" fillcolor="aquamarine" ]
+    enum_3 [label="Enum: StructVariant
+label =<<table border="0" cellborder="0" cellpadding="3" bgcolor="white"><tr><td bgcolor="black" align="center" colspan="2"><font color="white">State #9</font></td></tr><tr><td align="left" port="r2">&#40;2&#41; e -&gt; r &bull;</td><td bgcolor="grey" align="right">$</td></tr></table>> ];" shape="Mrecord" style="filled" fillcolor="aquamarine" ]
+    geode -> enum_0
+    geode -> enum_1
+    geode -> enum_2
+    geode -> enum_3
+}

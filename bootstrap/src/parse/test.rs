@@ -279,12 +279,11 @@ fn parse_assign_expr() {
 
         if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Path(Path {
             is_global: false,
-            name,
-            segments,
+            mut segments,
         })) = left.item
         {
-            assert_eq!(name.item, "foo".to_owned());
-            assert_eq!(segments.len(), 0);
+            assert_eq!(segments.len(), 1);
+            assert_eq!(segments.pop().unwrap().item, "foo".to_owned());
 
             if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) = right.item {
                 assert!(true);
@@ -399,8 +398,7 @@ fn parse_let_statement_typed() {
                 inner.ty,
                 Some(Spanned::empty(TypeReprKind::Path(Path::new(
                     false,
-                    Spanned::empty("Foo".to_owned()),
-                    Vec::new(),
+                    vec![Spanned::empty("Foo".to_owned())],
                 ))))
             );
             assert_eq!(inner.initializer, None);
@@ -436,8 +434,7 @@ fn parse_let_statement_typed_mut() {
                 inner.ty,
                 Some(Spanned::empty(TypeReprKind::Path(Path::new(
                     false,
-                    Spanned::empty("Foo".to_owned()),
-                    Vec::new(),
+                    vec![Spanned::empty("Foo".to_owned())],
                 ))))
             );
             assert_eq!(inner.initializer, None);

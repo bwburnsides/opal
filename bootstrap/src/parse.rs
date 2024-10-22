@@ -79,12 +79,12 @@ impl PeekFor<IntegerLiteralToken, ParseResult<u32>> for Stream<Token> {
     }
 }
 
-pub fn geode(tokens: &mut Stream<Token>) -> ParseResult<Geode> {
+pub fn geode(name: String, tokens: &mut Stream<Token>) -> ParseResult<Geode> {
     let mut items = Vec::new();
 
     loop {
         match tokens.peek() {
-            Token::Eof => break Ok(items),
+            Token::Eof => break Ok(Geode::new(name, items)),
             _ => items.push(item(tokens)?),
         }
     }
@@ -117,12 +117,8 @@ pub fn path(tokens: &mut Stream<Token>) -> ParseResult<Spanned<Path>> {
         };
     }
 
-    let base = segments
-        .pop()
-        .expect("Path expression parser should always produce at least one name");
-
     Ok(Spanned::new(
-        Path::new(is_global, base, segments),
+        Path::new(is_global, segments),
         Span::between(start, tokens.peek_span()),
     ))
 }

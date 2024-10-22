@@ -5,10 +5,23 @@ use super::BasicToken;
 use crate::model::*;
 
 pub type Identifier = Spanned<String>;
-pub type Geode = Vec<Item>;
 
-#[derive(Debug)]
-pub enum Item {
+#[derive(Debug, Clone)]
+pub struct Geode {
+    pub name: String,
+    pub items: Vec<Item>,
+}
+
+impl Geode {
+    pub fn new(name: String, items: Vec<Item>) -> Self {
+        Self { name, items }
+    }
+}
+
+pub type Item = Spanned<ItemKind>;
+
+#[derive(Debug, Clone)]
+pub enum ItemKind {
     Mod(ModItem),
     Use(UseItem),
     Function(FunctionItem),
@@ -19,29 +32,27 @@ pub enum Item {
     Static(StaticItem),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ModItem {
-    name: Identifier,
-    items: Option<Vec<Item>>,
+    pub name: Identifier,
+    pub items: Option<Vec<Item>>,
 }
 
 impl ModItem {
     pub fn new(name: Identifier, items: Option<Vec<Item>>) -> Self {
-        Self {name, items}
+        Self { name, items }
     }
 }
 
-pub type UseItem = Spanned<UseTree>;
-
-#[derive(Debug)]
-pub enum UseTree {
+#[derive(Debug, Clone)]
+pub enum UseItem {
     Import(UsePath),                 // use foo;
     Wildcard(UsePath),               // use foo::*;
-    Children(UsePath, Vec<UseTree>), // use foo::{bar, baz};
+    Children(UsePath, Vec<UseItem>), // use foo::{bar, baz};
     Rebind(UsePath, Identifier),     // use foo as bar;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UsePath {
     pub name: Identifier,
     pub segments: Vec<Identifier>,
@@ -53,13 +64,12 @@ impl UsePath {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FunctionItem {
-    name: Identifier,
-    parameters: Vec<Parameter>,
-    return_type: Option<TypeRepr>,
-    body: Option<BlockExpression>,
-    span: Span,
+    pub name: Identifier,
+    pub parameters: Vec<Parameter>,
+    pub return_type: Option<TypeRepr>,
+    pub body: Option<BlockExpression>,
 }
 
 impl FunctionItem {
@@ -68,19 +78,17 @@ impl FunctionItem {
         parameters: Vec<Parameter>,
         return_type: Option<TypeRepr>,
         body: Option<BlockExpression>,
-        span: Span,
     ) -> Self {
         Self {
             name,
             parameters,
             return_type,
             body,
-            span,
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Parameter {
     mutability: Mutability,
     name: Identifier,
@@ -99,33 +107,31 @@ impl Parameter {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TypeAliasItem {
-    name: Identifier,
-    ty: TypeRepr,
-    span: Span,
+    pub name: Identifier,
+    pub ty: TypeRepr,
 }
 
 impl TypeAliasItem {
-    pub fn new(name: Identifier, ty: TypeRepr, span: Span) -> Self {
-        Self { name, ty, span }
+    pub fn new(name: Identifier, ty: TypeRepr) -> Self {
+        Self { name, ty }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StructItem {
-    name: Identifier,
-    fields: Vec<Field>,
-    span: Span,
+    pub name: Identifier,
+    pub fields: Vec<Field>,
 }
 
 impl StructItem {
-    pub fn new(name: Identifier, fields: Vec<Field>, span: Span) -> Self {
-        Self { name, fields, span }
+    pub fn new(name: Identifier, fields: Vec<Field>) -> Self {
+        Self { name, fields }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Field {
     name: Identifier,
     ty: TypeRepr,
@@ -138,65 +144,49 @@ impl Field {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EnumItem {
-    name: Identifier,
-    variants: Vec<Variant>,
-    span: Span,
+    pub name: Identifier,
+    pub variants: Vec<Variant>,
 }
 
 impl EnumItem {
-    pub fn new(name: Identifier, variants: Vec<Variant>, span: Span) -> Self {
-        Self {
-            name,
-            variants,
-            span,
-        }
+    pub fn new(name: Identifier, variants: Vec<Variant>) -> Self {
+        Self { name, variants }
     }
 }
 
-#[derive(Debug)]
+// TODO: Variants need span information
+#[derive(Debug, Clone)]
 pub enum Variant {
     Unit(Identifier),
     Tuple(Identifier, Vec<TypeRepr>),
     Struct(Identifier, Vec<Field>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConstItem {
-    name: Identifier,
-    ty: TypeRepr,
-    value: Expression,
-    span: Span,
+    pub name: Identifier,
+    pub ty: TypeRepr,
+    pub value: Expression,
 }
 
 impl ConstItem {
-    pub fn new(name: Identifier, ty: TypeRepr, value: Expression, span: Span) -> Self {
-        Self {
-            name,
-            ty,
-            value,
-            span,
-        }
+    pub fn new(name: Identifier, ty: TypeRepr, value: Expression) -> Self {
+        Self { name, ty, value }
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct StaticItem {
-    name: Identifier,
-    ty: TypeRepr,
-    value: Expression,
-    span: Span,
+    pub name: Identifier,
+    pub ty: TypeRepr,
+    pub value: Expression,
 }
 
 impl StaticItem {
-    pub fn new(name: Identifier, ty: TypeRepr, value: Expression, span: Span) -> Self {
-        Self {
-            name,
-            ty,
-            value,
-            span,
-        }
+    pub fn new(name: Identifier, ty: TypeRepr, value: Expression) -> Self {
+        Self { name, ty, value }
     }
 }
 
@@ -205,15 +195,13 @@ pub type Expression = Spanned<ExpressionKind>;
 #[derive(Debug, Clone, PartialEq)]
 pub struct Path {
     pub is_global: bool,
-    pub name: Identifier,
     pub segments: Vec<Identifier>,
 }
 
 impl Path {
-    pub fn new(is_global: bool, name: Identifier, segments: Vec<Identifier>) -> Self {
+    pub fn new(is_global: bool, segments: Vec<Identifier>) -> Self {
         Self {
             is_global,
-            name,
             segments,
         }
     }

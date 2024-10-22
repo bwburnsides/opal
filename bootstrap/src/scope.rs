@@ -1,54 +1,71 @@
 use std::collections::HashMap;
 
-pub struct Geode {
-    name: String,
-    root: Module,
+use crate::model::{Identifier, Symbol, types::Type};
+use crate::span::Spanned;
+
+pub enum SymbolError {
+    MultiplyDefined,
+    Undefined,
 }
 
-pub struct Module {
-    modules: Vec<Module>,
+pub struct SymbolTable<'a> {
+    symbols: HashMap<String, Spanned<Symbol>>,
+    parent: Option<&'a SymbolTable<'a>>,
 }
 
-// pub struct Scope {
-//     parent: Option<Box<Scope>>,
-//     symbols: HashMap<String, Symbol>,
-// }
+impl<'a> SymbolTable<'a> {
+    pub fn core_table() -> Self {
+        Self {
+            symbols: HashMap::new(),
+            parent: None,
+        }
+    }
 
-// impl Scope {
-//     pub fn global() -> Self {
-//         let symbols = HashMap::from([
-//             ("Unit".to_owned(), Symbol::Type(Type::Unit)),
-//             ("u8".to_owned(), Symbol::Type(Type::U8)),
-//             ("i8".to_owned(), Symbol::Type(Type::I8)),
-//             ("u16".to_owned(), Symbol::Type(Type::U16)),
-//             ("i16".to_owned(), Symbol::Type(Type::I16)),
-//             ("u32".to_owned(), Symbol::Type(Type::U32)),
-//             ("i32".to_owned(), Symbol::Type(Type::I32)),
-//             ("bool".to_owned(), Symbol::Type(Type::Bool)),
-//             ("char".to_owned(), Symbol::Type(Type::Char)),
-//             ("str".to_owned(), Symbol::Type(Type::Str)),
-//         ]);
+    pub fn std_table(core: &'a SymbolTable) -> Self {
+        // This is a "prelude" of sorts that contains intrinsics via the core table and
+        // standard library symbols introduced here.
 
-//         Self {
-//             parent: Option::None,
-//             symbols,
-//         }
-//     }
+        Self {
+            symbols: HashMap::new(),
+            parent: Some(core),
+        }
+    }
 
-//     pub fn lookup(&self, name: &str) -> Option<&Symbol> {
-//         match self.symbols.get(name) {
-//             None => {
-//                 if let Some(parent) = &self.parent {
-//                     parent.lookup(name)
-//                 } else {
-//                     None
-//                 }
-//             }
-//             Some(sym) => Some(sym),
-//         }
-//     }
+    pub fn geode_table() -> Self {
+        Self {
+            symbols: HashMap::new(),
+            parent: None,
+        }
+    }
 
-//     pub fn local(&self, name: &str) -> Option<&Symbol> {
-//         self.symbols.get(name)
-//     }
-// }
+    pub fn lookup(&self, name: &String) -> Result<&Spanned<Symbol>, SymbolError> {
+        // Lookup the name in the local scope. If that succeeds, return the located symbol
+        // If it fails, and the scope has a parent, look it up in the parent scope.
+        // If it doesn't, the symbol is undefined.
+
+        self.local(name).or_else(|_err| {
+            self.parent
+                .map_or(Result::Err(SymbolError::Undefined), |p| p.lookup(name))
+        })
+    }
+
+    pub fn local(&self, name: &String) -> Result<&Spanned<Symbol>, SymbolError> {
+        // Attempt to retrieve the symbol from the local scope.
+        // If its present, return it. If its not, then the symbol is undefined.
+
+        self.symbols.get(name).ok_or(SymbolError::Undefined)
+    }
+
+    pub fn insert(&mut self, name: String, symbol: Spanned<Symbol>) -> Result<(), SymbolError> {
+        // Attempt to retrieve the symbol from the local scope. If this succeeds, the symbol
+        // has becomed multiply defined, so convert the retrieved symbol into an error.
+        // If this fails, insert the symbol.
+
+        self.local(&name)
+            .map_or(Ok(()), |_sym| Err(SymbolError::MultiplyDefined))
+            .and_then(|_unit| {
+                self.symbols.insert(name, symbol);
+                Ok(())
+            })
+    }
+}

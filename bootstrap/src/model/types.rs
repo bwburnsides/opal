@@ -12,8 +12,9 @@ pub enum Type {
     Char,
     Str,
     Unit,
+    Never,
     Array(Box<Type>, u32),
     Reference(Mutability, Box<Type>),
     Function,
-    String, // For user defined types
+    String, // User defined types. WIP.
 }

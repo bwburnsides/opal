@@ -1,7 +1,13 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
+#![allow(unused)]
+
+use std::io::Write;
+
+use diagnostic::GraphvizRenderer;
 
 mod check;
+mod diagnostic;
 mod driver;
 mod error;
 mod model;
@@ -11,9 +17,12 @@ mod span;
 mod stream;
 
 fn main() {
-    let source = std::fs::read_to_string("opal_tests/mod_test.opal").unwrap();
+    let source = std::fs::read_to_string("opal_tests/enums.opal").unwrap();
     let mut tokens = parse::tokenize(&source).unwrap();
-    let ast = parse::geode(&mut tokens).unwrap();
-
-    println!("{:#?}", ast);
+    let geode = parse::geode("DUMMY_NAME".to_owned(), &mut tokens).unwrap();
+    // let graph = GraphvizRenderer::render(&geode);
+    // let mut file = std::fs::File::create("test_output.gv").unwrap();
+    // file.write(graph.as_bytes());
+    println!("{:#?}", geode);
+    // println!("{graph}");
 }

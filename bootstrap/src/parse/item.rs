@@ -5,18 +5,35 @@ use crate::span::Span;
 use crate::stream::Stream;
 
 pub fn item(tokens: &mut Stream<Token>) -> ParseResult<Item> {
-    use KeywordToken::*;
+    use ItemKind::*;
+    use KeywordToken as Kw;
     use Token::*;
 
     match tokens.peek() {
-        Keyword(Mod) => mod_item(tokens).map(Item::Mod),
-        Keyword(Use) => use_item(tokens).map(Item::Use),
-        Keyword(Fn) => function_item(tokens).map(Item::Function),
-        Keyword(Type) => type_alias_item(tokens).map(Item::TypeAlias),
-        Keyword(Struct) => struct_item(tokens).map(Item::Struct),
-        Keyword(Enum) => enum_item(tokens).map(Item::Enum),
-        Keyword(Const) => const_item(tokens).map(Item::Const),
-        Keyword(Static) => static_item(tokens).map(Item::Static),
+        Keyword(Kw::Mod) => {
+            mod_item(tokens).map(|spanned| Item::new(Mod(spanned.item), spanned.span))
+        }
+        Keyword(Kw::Use) => {
+            use_item(tokens).map(|spanned| Item::new(Use(spanned.item), spanned.span))
+        }
+        Keyword(Kw::Fn) => {
+            function_item(tokens).map(|spanned| Item::new(Function(spanned.item), spanned.span))
+        }
+        Keyword(Kw::Type) => {
+            type_alias_item(tokens).map(|spanned| Item::new(TypeAlias(spanned.item), spanned.span))
+        }
+        Keyword(Kw::Struct) => {
+            struct_item(tokens).map(|spanned| Item::new(Struct(spanned.item), spanned.span))
+        }
+        Keyword(Kw::Enum) => {
+            enum_item(tokens).map(|spanned| Item::new(Enum(spanned.item), spanned.span))
+        }
+        Keyword(Kw::Const) => {
+            const_item(tokens).map(|spanned| Item::new(Const(spanned.item), spanned.span))
+        }
+        Keyword(Kw::Static) => {
+            static_item(tokens).map(|spanned| Item::new(Static(spanned.item), spanned.span))
+        }
         _ => Err(Error::new(
             tokens.peek_span(),
             format!("Expected to find item"),
@@ -24,49 +41,68 @@ pub fn item(tokens: &mut Stream<Token>) -> ParseResult<Item> {
     }
 }
 
-fn mod_item(tokens: &mut Stream<Token>) -> ParseResult<ModItem> {
+fn mod_item(tokens: &mut Stream<Token>) -> ParseResult<Spanned<ModItem>> {
     use BasicToken::*;
     use KeywordToken::*;
 
-    let start = tokens.peek_for(Mod, format!("Expected to find mod item beginning with {Mod}"))?;
-    let name = tokens.peek_for(IdentifierToken, format!("Expected module name to follow {Mod}"))?;
+    let start = tokens.peek_for(
+        Mod,
+        format!("Expected to find mod item beginning with {Mod}"),
+    )?;
+    let name = tokens.peek_for(
+        IdentifierToken,
+        format!("Expected module name to follow {Mod}"),
+    )?;
 
     match tokens.peek_for(Semicolon, String::from("")) {
-        Ok(_) => Ok(ModItem::new(name, None)),
+        Ok(spanned) => Ok(Spanned::new(
+            ModItem::new(name, None),
+            Span::between(start.span, spanned.span),
+        )),
         Err(_) => {
-            tokens.peek_for(LBrace, format!("Expected {LBrace} following module name {}", name.item))?;
+            tokens.peek_for(
+                LBrace,
+                format!("Expected {LBrace} following module name {}", name.item),
+            )?;
 
             let mut items = Vec::new();
             loop {
                 match tokens.peek_for(RBrace, String::from("")) {
-                    Ok(_) => break Ok(ModItem::new(name, Some(items))),
-                    Err(_) => items.push(item(tokens)?)
+                    Ok(spanned) => {
+                        break Ok(Spanned::new(
+                            ModItem::new(name, Some(items)),
+                            Span::between(start.span, spanned.span),
+                        ))
+                    }
+                    Err(_) => items.push(item(tokens)?),
                 }
             }
         }
     }
 }
 
-fn use_item(tokens: &mut Stream<Token>) -> ParseResult<UseItem> {
-    use BasicToken::*;
-    use KeywordToken::*;
+fn use_item(tokens: &mut Stream<Token>) -> ParseResult<Spanned<UseItem>> {
+    todo!()
 
-    let start = tokens.peek_for(
-        Use,
-        format!("Expected to find use item beginning with {Use}"),
-    )?;
+    // use BasicToken::*;
+    // use KeywordToken::*;
 
-    let tree = use_tree(tokens)?;
+    // let start = tokens.peek_for(
+    //     Use,
+    //     format!("Expected to find use item beginning with {Use}"),
+    // )?;
 
-    let end = tokens.peek_for(
-        Semicolon,
-        format!("Expected to find {Semicolon} to conclude use item"),
-    )?;
+    // let tree = use_tree(tokens)?;
 
-    Ok(UseItem::new(tree, Span::between(start.span, end.span)))
+    // let end = tokens.peek_for(
+    //     Semicolon,
+    //     format!("Expected to find {Semicolon} to conclude use item"),
+    // )?;
+
+    // Ok(Spanned::new(tree, Span::between(start.span, end.span)))
 }
 
-fn function_item(tokens: &mut Stream<Token>) -> ParseResult<FunctionItem> {
+fn function_item(tokens: &mut Stream<Token>) -> ParseResult<Spanned<FunctionItem>> {
     use BasicToken::*;
     use KeywordToken::*;
 
@@ -125,16 +161,18 @@ fn function_item(tokens: &mut Stream<Token>) -> ParseResult<FunctionItem> {
 
     let body = block_expression(tokens)?;
 
-    Ok(FunctionItem::new(
-        function_name,
-        parameters,
-        return_type,
-        Some(body.item),  // TODO: Make body optional
+    Ok(Spanned::new(
+        FunctionItem::new(
+            function_name,
+            parameters,
+            return_type,
+            Some(body.item), // TODO: Make body optional
+        ),
         Span::between(start.span, body.span),
     ))
 }
 
-fn type_alias_item(tokens: &mut Stream<Token>) -> ParseResult<TypeAliasItem> {
+fn type_alias_item(tokens: &mut Stream<Token>) -> ParseResult<Spanned<TypeAliasItem>> {
     use BasicToken::*;
     use KeywordToken::*;
 
@@ -166,14 +204,13 @@ fn type_alias_item(tokens: &mut Stream<Token>) -> ParseResult<TypeAliasItem> {
         ),
     )?;
 
-    Ok(TypeAliasItem::new(
-        name,
-        ty,
+    Ok(Spanned::new(
+        TypeAliasItem::new(name, ty),
         Span::between(start.span, end.span),
     ))
 }
 
-fn struct_item(tokens: &mut Stream<Token>) -> ParseResult<StructItem> {
+fn struct_item(tokens: &mut Stream<Token>) -> ParseResult<Spanned<StructItem>> {
     use BasicToken::*;
     use KeywordToken::*;
 
@@ -219,14 +256,13 @@ fn struct_item(tokens: &mut Stream<Token>) -> ParseResult<StructItem> {
         ),
     )?;
 
-    Ok(StructItem::new(
-        name,
-        fields,
+    Ok(Spanned::new(
+        StructItem::new(name, fields),
         Span::between(start.span, end.span),
     ))
 }
 
-fn enum_item(tokens: &mut Stream<Token>) -> ParseResult<EnumItem> {
+fn enum_item(tokens: &mut Stream<Token>) -> ParseResult<Spanned<EnumItem>> {
     use BasicToken::*;
     use KeywordToken::*;
 
@@ -272,14 +308,13 @@ fn enum_item(tokens: &mut Stream<Token>) -> ParseResult<EnumItem> {
         ),
     )?;
 
-    Ok(EnumItem::new(
-        name,
-        variants,
+    Ok(Spanned::new(
+        EnumItem::new(name, variants),
         Span::between(start.span, end.span),
     ))
 }
 
-fn const_item(tokens: &mut Stream<Token>) -> ParseResult<ConstItem> {
+fn const_item(tokens: &mut Stream<Token>) -> ParseResult<Spanned<ConstItem>> {
     use BasicToken::*;
     use KeywordToken::*;
 
@@ -321,15 +356,13 @@ fn const_item(tokens: &mut Stream<Token>) -> ParseResult<ConstItem> {
         ),
     )?;
 
-    Ok(ConstItem::new(
-        name,
-        ty,
-        value,
+    Ok(Spanned::new(
+        ConstItem::new(name, ty, value),
         Span::between(start.span, end.span),
     ))
 }
 
-fn static_item(tokens: &mut Stream<Token>) -> ParseResult<StaticItem> {
+fn static_item(tokens: &mut Stream<Token>) -> ParseResult<Spanned<StaticItem>> {
     use BasicToken::*;
     use KeywordToken::*;
 
@@ -371,133 +404,131 @@ fn static_item(tokens: &mut Stream<Token>) -> ParseResult<StaticItem> {
         ),
     )?;
 
-    Ok(StaticItem::new(
-        name,
-        ty,
-        value,
+    Ok(Spanned::new(
+        StaticItem::new(name, ty, value),
         Span::between(start.span, end.span),
     ))
 }
 
-fn use_tree(tokens: &mut Stream<Token>) -> ParseResult<UseTree> {
-    use BasicToken::*;
-    use KeywordToken::*;
-    use Token::*;
+// fn use_tree(tokens: &mut Stream<Token>) -> ParseResult<UseTree> {
+//     use BasicToken::*;
+//     use KeywordToken::*;
+//     use Token::*;
 
-    // UseTree |= Path COLON2 ASTERISK
-    //         |  Path COLON2 LBRACE UseTree (COMMA UseTree)* COMMA? RBRACE
-    //         |  Path (AS IDENT)?
-    //
-    // With some left factoring...
-    //
-    // UseTree |= Path UseTreeTail
-    //
-    // UseTreeTail |= COLON2 ASTERISK
-    //             |  COLON2 LBRACE UseTree (COMMA UseTree)* COMMA? RBRACE
-    //             |  AS IDENT
-    //             |  EPSILON
-    //
+//     // UseTree |= Path COLON2 ASTERISK
+//     //         |  Path COLON2 LBRACE UseTree (COMMA UseTree)* COMMA? RBRACE
+//     //         |  Path (AS IDENT)?
+//     //
+//     // With some left factoring...
+//     //
+//     // UseTree |= Path UseTreeTail
+//     //
+//     // UseTreeTail |= COLON2 ASTERISK
+//     //             |  COLON2 LBRACE UseTree (COMMA UseTree)* COMMA? RBRACE
+//     //             |  AS IDENT
+//     //             |  EPSILON
+//     //
 
-    let mut segments = Vec::new();
-    segments.push(tokens.peek_for(
-        IdentifierToken,
-        format!("Expected identifier while parsing use path"),
-    )?);
+//     let mut segments = Vec::new();
+//     segments.push(tokens.peek_for(
+//         IdentifierToken,
+//         format!("Expected identifier while parsing use path"),
+//     )?);
 
-    if let Basic(Colon2) = tokens.peek() {
-        tokens.pop();
+//     if let Basic(Colon2) = tokens.peek() {
+//         tokens.pop();
 
-        loop {
-            match tokens.peek() {
-                Identifier(name) => {
-                    let popped = tokens.pop();
-                    segments.push(ast::Identifier::new(name, popped.span));
-                }
-                Basic(Asterisk) => {
-                    tokens.pop();
-                    break Ok(UseTree::Wildcard(UsePath::new(
-                        segments
-                            .pop()
-                            .expect("Use tree parser should always produce at least one name..."),
-                        segments,
-                    )));
-                }
-                Basic(LBrace) => {
-                    tokens.pop();
-                    let mut trees = vec![use_tree(tokens)?];
-                    loop {
-                        if let Basic(Comma) = tokens.peek() {
-                            tokens.pop();
-                            trees.push(use_tree(tokens)?);
-                        } else {
-                            break;
-                        }
-                    }
-                    let _ = tokens.peek_for(Comma, String::from(""));
-                    tokens.peek_for(RBrace, format!("Expected {RBrace} to conclude use tree"))?;
-                    break Ok(UseTree::Children(
-                        UsePath::new(
-                            segments.pop().expect(
-                                "Use tree parser should always produce at least one name...",
-                            ),
-                            segments,
-                        ),
-                        trees,
-                    ));
-                },
-                otherwise => break Err(
-                    Error::new(
-                        tokens.peek_span(),
-                        format!(
-                            "Expected identifier, {Asterisk}, or {LBrace} as part of use tree, but found {otherwise} instead"
-                        )
-                    )
-                )
-            }
+//         loop {
+//             match tokens.peek() {
+//                 Identifier(name) => {
+//                     let popped = tokens.pop();
+//                     segments.push(ast::Identifier::new(name, popped.span));
+//                 }
+//                 Basic(Asterisk) => {
+//                     tokens.pop();
+//                     break Ok(UseTree::Wildcard(UsePath::new(
+//                         segments
+//                             .pop()
+//                             .expect("Use tree parser should always produce at least one name..."),
+//                         segments,
+//                     )));
+//                 }
+//                 Basic(LBrace) => {
+//                     tokens.pop();
+//                     let mut trees = vec![use_tree(tokens)?];
+//                     loop {
+//                         if let Basic(Comma) = tokens.peek() {
+//                             tokens.pop();
+//                             trees.push(use_tree(tokens)?);
+//                         } else {
+//                             break;
+//                         }
+//                     }
+//                     let _ = tokens.peek_for(Comma, String::from(""));
+//                     tokens.peek_for(RBrace, format!("Expected {RBrace} to conclude use tree"))?;
+//                     break Ok(UseTree::Children(
+//                         UsePath::new(
+//                             segments.pop().expect(
+//                                 "Use tree parser should always produce at least one name...",
+//                             ),
+//                             segments,
+//                         ),
+//                         trees,
+//                     ));
+//                 },
+//                 otherwise => break Err(
+//                     Error::new(
+//                         tokens.peek_span(),
+//                         format!(
+//                             "Expected identifier, {Asterisk}, or {LBrace} as part of use tree, but found {otherwise} instead"
+//                         )
+//                     )
+//                 )
+//             }
 
-            match tokens.peek() {
-                Basic(Colon2) => {
-                    tokens.pop();
-                }
-                Keyword(As) => {
-                    tokens.pop();
-                    let name = tokens.peek_for(
-                        IdentifierToken,
-                        format!("Expected identifier following {As}"),
-                    )?;
-                    break Ok(UseTree::Rebind(
-                        UsePath::new(segments.pop().unwrap(), segments),
-                        name,
-                    ));
-                }
-                _epsilon => {
-                    break Ok(UseTree::Import(UsePath::new(
-                        segments.pop().unwrap(),
-                        segments,
-                    )))
-                }
-            }
-        }
-    } else {
-        match tokens.peek() {
-            Keyword(As) => {
-                tokens.pop();
-                let name = tokens.peek_for(
-                    IdentifierToken,
-                    format!("Expected identifier following {As}"),
-                )?;
-                Ok(UseTree::Rebind(
-                    UsePath::new(segments.pop().unwrap(), segments),
-                    name,
-                ))
-            }
-            _epsilon => Ok(UseTree::Import(UsePath::new(
-                segments.pop().unwrap(),
-                segments,
-            ))),
-        }
-    }
-}
+//             match tokens.peek() {
+//                 Basic(Colon2) => {
+//                     tokens.pop();
+//                 }
+//                 Keyword(As) => {
+//                     tokens.pop();
+//                     let name = tokens.peek_for(
+//                         IdentifierToken,
+//                         format!("Expected identifier following {As}"),
+//                     )?;
+//                     break Ok(UseTree::Rebind(
+//                         UsePath::new(segments.pop().unwrap(), segments),
+//                         name,
+//                     ));
+//                 }
+//                 _epsilon => {
+//                     break Ok(UseTree::Import(UsePath::new(
+//                         segments.pop().unwrap(),
+//                         segments,
+//                     )))
+//                 }
+//             }
+//         }
+//     } else {
+//         match tokens.peek() {
+//             Keyword(As) => {
+//                 tokens.pop();
+//                 let name = tokens.peek_for(
+//                     IdentifierToken,
+//                     format!("Expected identifier following {As}"),
+//                 )?;
+//                 Ok(UseTree::Rebind(
+//                     UsePath::new(segments.pop().unwrap(), segments),
+//                     name,
+//                 ))
+//             }
+//             _epsilon => Ok(UseTree::Import(UsePath::new(
+//                 segments.pop().unwrap(),
+//                 segments,
+//             ))),
+//         }
+//     }
+// }
 
 pub fn type_repr(tokens: &mut Stream<Token>) -> ParseResult<TypeRepr> {
     use BasicToken::*;
