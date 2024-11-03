@@ -164,9 +164,9 @@ fn parse_integer_literal() {
     let expr = expression(&mut tokens).unwrap();
 
     if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) = expr.item {
-        assert!(true);
+        // assert!(true);
     } else {
-        assert!(false);
+        panic!();
     }
 }
 
@@ -192,15 +192,15 @@ fn parse_add_expr() {
 
         match left.item {
             ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) => { /* */ }
-            _ => assert!(false),
+            _ => panic!(),
         }
 
         match right.item {
-            ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(2)) => assert!(true),
-            _ => assert!(false),
+            ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(2)) => { /*assert!(true)*/ },
+            _ => panic!(),
         }
     } else {
-        assert!(false);
+        panic!();
     }
 }
 
@@ -240,23 +240,23 @@ fn parse_add_assoc_expr() {
                     if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(2)) =
                         right_inner.item
                     {
-                        assert!(true)
+                        // assert!(true)
                     } else {
-                        assert!(false)
+                        panic!()
                     }
                 } else {
-                    assert!(false)
+                    panic!()
                 }
             }
-            _ => assert!(false),
+            _ => panic!(),
         }
 
         match right.item {
-            ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(1)) => assert!(true),
-            _ => assert!(false),
+            ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(1)) => {},
+            _ => panic!(),
         }
     } else {
-        assert!(false);
+        panic!();
     }
 }
 
@@ -286,15 +286,15 @@ fn parse_assign_expr() {
             assert_eq!(segments.pop().unwrap().item, "foo".to_owned());
 
             if let ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Integer(4)) = right.item {
-                assert!(true);
+                // assert!(true);
             } else {
-                assert!(false);
+                panic!();
             }
         } else {
-            assert!(false)
+            panic!()
         }
     } else {
-        assert!(false)
+        panic!()
     }
 }
 
@@ -340,7 +340,7 @@ fn parse_let_statement_bare() {
             assert_eq!(inner.ty, None);
             assert_eq!(inner.initializer, None);
         }
-        _ => assert!(false),
+        _ => panic!(),
     }
 }
 
@@ -368,7 +368,7 @@ fn parse_let_statement_bare_mut() {
             assert_eq!(inner.ty, None);
             assert_eq!(inner.initializer, None);
         }
-        _ => assert!(false),
+        _ => panic!(),
     }
 }
 
@@ -403,7 +403,7 @@ fn parse_let_statement_typed() {
             );
             assert_eq!(inner.initializer, None);
         }
-        _ => assert!(false),
+        _ => panic!(),
     }
 }
 
@@ -439,7 +439,7 @@ fn parse_let_statement_typed_mut() {
             );
             assert_eq!(inner.initializer, None);
         }
-        _ => assert!(false),
+        _ => panic!(),
     }
 }
 

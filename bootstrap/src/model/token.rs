@@ -13,8 +13,9 @@ pub enum KeywordToken {
     Break,
     True,
     False,
-    Unit,
-    When,
+    Case,
+    If,
+    Is,
     For,
     Return,
     Mut,
@@ -29,43 +30,11 @@ pub enum KeywordToken {
     Str,
     Use,
     As,
-    Mod,
 }
 
 impl std::fmt::Display for KeywordToken {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use KeywordToken::*;
-
-        match self {
-            Fn => write!(f, "fn"),
-            Type => write!(f, "type"),
-            Struct => write!(f, "struct"),
-            Enum => write!(f, "enum"),
-            Static => write!(f, "static"),
-            Const => write!(f, "const"),
-            Let => write!(f, "let"),
-            Continue => write!(f, "continue"),
-            Break => write!(f, "break"),
-            True => write!(f, "True"),
-            False => write!(f, "False"),
-            Unit => write!(f, "Unit"),
-            When => write!(f, "when"),
-            For => write!(f, "for"),
-            Return => write!(f, "return"),
-            Mut => write!(f, "mut"),
-            U8 => write!(f, "u8"),
-            I8 => write!(f, "i8"),
-            U16 => write!(f, "u16"),
-            I16 => write!(f, "i16"),
-            U32 => write!(f, "u32"),
-            I32 => write!(f, "i32"),
-            Bool => write!(f, "bool"),
-            Char => write!(f, "char"),
-            Str => write!(f, "str"),
-            Use => write!(f, "use"),
-            As => write!(f, "as"),
-            Mod => write!(f, "mod"),
-        }
+        write!(f, "{}", self.to_string().to_lowercase())
     }
 }
 
@@ -75,6 +44,7 @@ impl TryFrom<String> for KeywordToken {
     fn try_from(value: String) -> Result<Self, Self::Error> {
         use KeywordToken::*;
 
+        
         match value.as_str() {
             "fn" => Ok(Fn),
             "type" => Ok(Type),
@@ -103,7 +73,6 @@ impl TryFrom<String> for KeywordToken {
             "str" => Ok(Str),
             "use" => Ok(Use),
             "as" => Ok(As),
-            "mod" => Ok(Mod),
             _ => Err(()),
         }
     }

@@ -17,7 +17,7 @@ impl Digraph {
         for node in self.nodes {
             output.push_str(format!("    {}", node.name).as_str());
 
-            if node.attributes.len() != 0 {
+            if !node.attributes.is_empty() {
                 output.push_str(" [");
             }
 
@@ -30,7 +30,7 @@ impl Digraph {
                         output.push_str(format!("shape=\"{}\" ", name).as_str())
                     }
                     NodeAttribute::FillColor(name) => {
-                        output.push_str(format!("style=\"filled\" ").as_str());
+                        output.push_str("style=\"filled\" ");
                         output.push_str(format!("fillcolor=\"{}\" ", name).as_str())
                     }
                     NodeAttribute::BackgroundColor(name) => {
@@ -39,7 +39,7 @@ impl Digraph {
                 }
             }
 
-            if node.attributes.len() != 0 {
+            if !node.attributes.is_empty() {
                 output.push(']');
             }
             output.push('\n');

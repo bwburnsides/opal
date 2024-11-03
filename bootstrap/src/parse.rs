@@ -93,10 +93,9 @@ pub fn geode(name: String, tokens: &mut Stream<Token>) -> ParseResult<Geode> {
 pub fn path(tokens: &mut Stream<Token>) -> ParseResult<Spanned<Path>> {
     let start = tokens.peek_span();
 
-    let is_global = match tokens.peek_for(BasicToken::Colon2, String::from("")) {
-        Ok(_) => true,
-        Err(_) => false,
-    };
+    let is_global = tokens
+        .peek_for(BasicToken::Colon2, String::from(""))
+        .is_ok();
 
     let mut segments = Vec::new();
 

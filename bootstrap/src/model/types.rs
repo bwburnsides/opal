@@ -1,6 +1,6 @@
-use crate::model::Mutability;
+use crate::model::base::Mutability;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     U8,
     I8,

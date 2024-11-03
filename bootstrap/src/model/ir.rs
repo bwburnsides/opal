@@ -24,7 +24,7 @@ pub enum Statement {
         op: UnaryOp,
         target: VariableId,
         right: VariableId,
-    }
+    },
 }
 
 pub enum BinaryOp {
@@ -34,5 +34,5 @@ pub enum BinaryOp {
 }
 
 pub enum UnaryOp {
-    Negate
+    Negate,
 }

@@ -36,7 +36,7 @@ pub fn parse_args(args: Vec<String>) -> Option<Subcommand> {
     };
 
     if let Some(cmd) = subcommand {
-        if args.len() == 0 {
+        if args.is_empty() {
             Some(cmd)
         } else {
             eprintln!("Unexpected arguments following subcommand");
@@ -57,10 +57,10 @@ pub fn parse_subcommand_new(program_name: String, args: &mut Vec<String>) -> Opt
     }
 }
 
-pub fn parse_subcommand_build(program_name: String, args: &mut Vec<String>) -> Option<Subcommand> {
+pub fn parse_subcommand_build(program_name: String, args: &mut [String]) -> Option<Subcommand> {
     Some(Subcommand::Build)
 }
 
-pub fn parse_subcommand_run(program_name: String, args: &mut Vec<String>) -> Option<Subcommand> {
+pub fn parse_subcommand_run(program_name: String, args: &mut [String]) -> Option<Subcommand> {
     Some(Subcommand::Run(args.to_vec()))
 }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::model::{Identifier, Symbol, types::Type};
+use crate::model::{types::Type, Identifier, Symbol};
 use crate::span::Spanned;
 
 pub enum SymbolError {
@@ -39,15 +39,18 @@ impl SymbolTable {
         }
     }
 
-    pub fn lookup(&self, name: &String) -> Result<&Spanned<Symbol>, SymbolError> {
+    pub fn lookup(&self, name: &str) -> Result<&Spanned<Symbol>, SymbolError> {
         // Lookup the name in the local scope. If that succeeds, return the located symbol
         // If it fails, and the scope has a parent, look it up in the parent scope.
         // If it doesn't, the symbol is undefined.
 
-        self.local(name).or_else(|_err| {
-            self.parent.clone()
-                .map_or(Result::Err(SymbolError::Undefined), |p| p.lookup(name))
-        })
+        todo!()
+        // TODO: fix this
+        // self.local(name).or_else(|_err| {
+        //     self.parent
+        //         .clone()
+        //         .map_or(Result::Err(SymbolError::Undefined), |p| p.lookup(name))
+        // })
     }
 
     pub fn local(&self, name: &String) -> Result<&Spanned<Symbol>, SymbolError> {

@@ -1,10 +1,11 @@
 pub mod ast;
+pub mod cfg;
+pub mod ir;
 pub mod symbol;
 pub mod token;
 pub mod types;
-pub mod typed_ast;
-pub mod ir;
-pub mod cfg;
+pub mod ttg;
+pub mod base;
 
 pub use ast::*;
 pub use symbol::*;

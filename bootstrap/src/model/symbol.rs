@@ -1,5 +1,6 @@
 use crate::model::types;
 
+#[derive(Debug, Clone)]
 pub enum Symbol {
     Type(types::Type),
     Variable {

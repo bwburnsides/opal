@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 use crate::model::ir;
+use std::collections::HashSet;
 
 pub type BlockId = usize;
 

@@ -1,3 +1,5 @@
+use std::iter;
+
 use crate::model::*;
 use crate::parse;
 use crate::parse::*;
@@ -36,7 +38,7 @@ pub fn item(tokens: &mut Stream<Token>) -> ParseResult<Item> {
         }
         _ => Err(Error::new(
             tokens.peek_span(),
-            format!("Expected to find item"),
+            "Expected to find item".to_string(),
         )),
     }
 }
@@ -234,17 +236,14 @@ fn struct_item(tokens: &mut Stream<Token>) -> ParseResult<Spanned<StructItem>> {
 
     let mut fields = Vec::new();
 
-    loop {
-        if let Token::Identifier(_) = tokens.peek() {
-            let fd = field(tokens)?;
-            fields.push(fd);
+    while let Token::Identifier(_) = tokens.peek() {
+        let fd = field(tokens)?;
 
-            match tokens.peek_for(Comma, String::from("")) {
-                Ok(_) => { /* */ }
-                Err(_) => break,
-            }
-        } else {
-            break;
+        fields.push(fd);
+
+        match tokens.peek_for(Comma, String::from("")) {
+            Ok(_) => { /* */ }
+            Err(_) => break,
         }
     }
 
@@ -286,17 +285,13 @@ fn enum_item(tokens: &mut Stream<Token>) -> ParseResult<Spanned<EnumItem>> {
 
     let mut variants = Vec::new();
 
-    loop {
-        if let Token::Identifier(_) = tokens.peek() {
-            let vt = variant(tokens)?;
-            variants.push(vt);
+    while let Token::Identifier(_) = tokens.peek() {
+        let vt = variant(tokens)?;
+        variants.push(vt);
 
-            match tokens.peek_for(Comma, String::from("")) {
-                Ok(_) => { /* */ }
-                Err(_) => break,
-            }
-        } else {
-            break;
+        match tokens.peek_for(Comma, String::from("")) {
+            Ok(_) => { /* */ }
+            Err(_) => break,
         }
     }
 
@@ -555,7 +550,7 @@ pub fn type_repr(tokens: &mut Stream<Token>) -> ParseResult<TypeRepr> {
             )?;
             let size = tokens.peek_for(
                 IntegerLiteralToken,
-                format!("Expected to find array type literal's span"),
+                "Expected to find array type literal's span".to_string(),
             )?;
             let end = tokens.peek_for(
                 RBrack,
@@ -574,7 +569,7 @@ pub fn type_repr(tokens: &mut Stream<Token>) -> ParseResult<TypeRepr> {
                 Err(_) => Mutability::Immutable,
             };
             let ty = type_repr(tokens)?;
-            let ty_span = ty.span.clone();
+            let ty_span = ty.span;
 
             Ok(TypeRepr::new(
                 TypeReprKind::Reference(mutability, Box::new(ty)),
@@ -617,8 +612,11 @@ fn parameter(tokens: &mut Stream<Token>) -> ParseResult<Parameter> {
         Err(_) => (Mutability::Immutable, None),
     };
 
-    let name = tokens.peek_for(IdentifierToken, format!("Expected to find parameter name"))?;
-    let name_span = name.span.clone();
+    let name = tokens.peek_for(
+        IdentifierToken,
+        "Expected to find parameter name".to_string(),
+    )?;
+    let name_span = name.span;
 
     tokens.peek_for(
         Colon,
@@ -629,7 +627,7 @@ fn parameter(tokens: &mut Stream<Token>) -> ParseResult<Parameter> {
     )?;
 
     let ty = type_repr(tokens)?;
-    let ty_span = ty.span.clone();
+    let ty_span = ty.span;
 
     Ok(Parameter::new(
         mutability,
@@ -642,8 +640,8 @@ fn parameter(tokens: &mut Stream<Token>) -> ParseResult<Parameter> {
 fn field(tokens: &mut Stream<Token>) -> ParseResult<Field> {
     use BasicToken::Colon;
 
-    let name = tokens.peek_for(IdentifierToken, format!("Expected field name"))?;
-    let name_span = name.span.clone();
+    let name = tokens.peek_for(IdentifierToken, "Expected field name".to_string())?;
+    let name_span = name.span;
 
     tokens.peek_for(
         Colon,
@@ -651,7 +649,7 @@ fn field(tokens: &mut Stream<Token>) -> ParseResult<Field> {
     )?;
 
     let ty = type_repr(tokens)?;
-    let ty_span = ty.span.clone();
+    let ty_span = ty.span;
 
     Ok(Field::new(name, ty, Span::between(name_span, ty_span)))
 }
@@ -662,7 +660,7 @@ fn variant(tokens: &mut Stream<Token>) -> ParseResult<Variant> {
 
     let name = tokens.peek_for(
         IdentifierToken,
-        format!("Expected to find variant identifier"),
+        "Expected to find variant identifier".to_string(),
     )?;
 
     match tokens.peek() {
@@ -739,22 +737,22 @@ pub fn peek_type_repr(tokens: &Stream<Token>) -> bool {
     use KeywordToken::*;
     use Token::*;
 
-    match tokens.peek() {
-        Keyword(U8) => true,
-        Keyword(I8) => true,
-        Keyword(U16) => true,
-        Keyword(I16) => true,
-        Keyword(U32) => true,
-        Keyword(I32) => true,
-        Keyword(Bool) => true,
-        Keyword(Char) => true,
-        Keyword(Str) => true,
-        Keyword(Unit) => true,
-        Basic(LBrack) => true,
-        Basic(Ampersand) => true,
-        Basic(LParen) => true,
-        Basic(Colon2) => true,
-        Identifier(_) => true,
-        _ => false,
-    }
+    matches!(
+        tokens.peek(),
+        Keyword(U8)
+            | Keyword(I8)
+            | Keyword(U16)
+            | Keyword(I16)
+            | Keyword(U32)
+            | Keyword(I32)
+            | Keyword(Bool)
+            | Keyword(Char)
+            | Keyword(Str)
+            | Keyword(Unit)
+            | Basic(LBrack)
+            | Basic(Ampersand)
+            | Basic(LParen)
+            | Basic(Colon2)
+            | Identifier(_)
+    )
 }

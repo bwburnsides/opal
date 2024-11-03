@@ -209,9 +209,9 @@ fn prefix(tokens: &mut Stream<Token>) -> ParseResult<Expression> {
     use LiteralToken as Lit;
     use Token::*;
 
-    let maybe_parser: Option<&dyn Fn(&mut Stream<Token>) -> ParseResult<Expression>> = match tokens
-        .peek()
-    {
+    type ExpressionParser = dyn Fn(&mut Stream<Token>) -> ParseResult<Expression>;
+
+    let maybe_parser: Option<&ExpressionParser> = match tokens.peek() {
         Basic(LParen) => Some(&group),
         Basic(Hyphen) | Basic(Bang) => Some(&negate_operator),
         Basic(LBrack) => Some(&array),
@@ -267,7 +267,7 @@ fn assignment(
         Ok(op) => op,
     };
 
-    let basic = BasicToken::from(operator.clone());
+    let basic = BasicToken::from(operator);
     tokens.peek_for(
         basic.clone(),
         format!("Expected to find {basic} as assignment operator"),
@@ -275,8 +275,8 @@ fn assignment(
 
     let right = pratt(precedence.right_associative(), tokens)?;
 
-    let left_span = left.span.clone();
-    let right_span = right.span.clone();
+    let left_span = left.span;
+    let right_span = right.span;
 
     Ok(Expression::new(
         ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Assignment(
@@ -311,8 +311,8 @@ fn comparison(
 
     let right = pratt(precedence, tokens)?;
 
-    let left_span = left.span.clone();
-    let right_span = right.span.clone();
+    let left_span = left.span;
+    let right_span = right.span;
 
     Ok(Expression::new(
         ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Comparison(
@@ -347,8 +347,8 @@ fn lazy_boolean(
 
     let right = pratt(precedence, tokens)?;
 
-    let left_span = left.span.clone();
-    let right_span = right.span.clone();
+    let left_span = left.span;
+    let right_span = right.span;
 
     Ok(Expression::new(
         ExpressionKind::WithoutBlock(ExpressionWithoutBlock::LazyBoolean(
@@ -367,7 +367,7 @@ fn call(
 ) -> ParseResult<Expression> {
     use BasicToken::*;
 
-    let left_span = left.span.clone();
+    let left_span = left.span;
 
     tokens.peek_for(
         LParen,
@@ -414,7 +414,7 @@ fn index(
 ) -> ParseResult<Expression> {
     use BasicToken::*;
 
-    let left_span = left.span.clone();
+    let left_span = left.span;
 
     tokens.peek_for(
         LBrack,
@@ -444,7 +444,7 @@ fn field(
 ) -> ParseResult<Expression> {
     use BasicToken::*;
 
-    let left_span = left.span.clone();
+    let left_span = left.span;
 
     tokens.peek_for(
         Period,
@@ -452,7 +452,7 @@ fn field(
     )?;
     let ident = tokens.peek_for(
         IdentifierToken,
-        format!("Expected to find identifier as part of field expression"),
+        "Expected to find identifier as part of field expression".to_string(),
     )?;
 
     Ok(Expression::new(
@@ -484,8 +484,8 @@ fn arithmetic_or_logical(
 
     let right = pratt(precedence, tokens)?;
 
-    let left_span = left.span.clone();
-    let right_span = right.span.clone();
+    let left_span = left.span;
+    let right_span = right.span;
 
     Ok(Expression::new(
         ExpressionKind::WithoutBlock(ExpressionWithoutBlock::ArithmeticOrLogical(
@@ -511,7 +511,7 @@ fn group(tokens: &mut Stream<Token>) -> ParseResult<Expression> {
         format!("Expected {RParen} to close parenthesized expression"),
     )?;
 
-    let expr_span = expr.span.clone();
+    let expr_span = expr.span;
 
     Ok(Expression::new(
         ExpressionKind::WithoutBlock(ExpressionWithoutBlock::Grouped(Box::new(expr))),
