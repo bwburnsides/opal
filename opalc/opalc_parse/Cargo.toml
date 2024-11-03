@@ -1,7 +1,0 @@
-[package]
-name = "opalc_parse"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-opalc_ast = { path = "../opalc_ast" }

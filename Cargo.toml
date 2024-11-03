@@ -1,3 +1,2 @@
 [workspace]
-
-members = [ "boot2", "bootstrap", "experiment", "opal_lexer"]
+members=["opalc"]

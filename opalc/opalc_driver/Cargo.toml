@@ -1,7 +1,0 @@
-[package]
-name = "opalc_driver"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-opalc_lexer = { path = "../opalc_lexer" }

@@ -1,3 +1,6 @@
-[workspace]
-resolver = "2"
-members = [ "opalc_ast", "opalc_driver","opalc_lexer", "opalc_parse", "opalc_span"]
+[package]
+name = "opalc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
