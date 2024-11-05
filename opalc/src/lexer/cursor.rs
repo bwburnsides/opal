@@ -3,7 +3,9 @@ use std::str::Chars;
 pub const EOF: char = '\0';
 
 pub struct Cursor<'a> {
-    remaining: usize,
+    consumed: usize,  // Number of characters consumed
+    marker: usize,  // An arbitrary position marker set by caller as needed
+
     chars: Chars<'a>,
     #[cfg(debug_assertions)]
     pub prev: char,
@@ -13,7 +15,8 @@ pub struct Cursor<'a> {
 impl<'a> Cursor<'a> {
     pub fn new(input: &'a str) -> Cursor<'a> {
         Cursor {
-            remaining: input.len(),
+            consumed: 0,
+            marker: 0,
             chars: input.chars(),
             #[cfg(debug_assertions)]
             prev: EOF,
@@ -32,23 +35,22 @@ impl<'a> Cursor<'a> {
     pub fn pop(&mut self) -> Option<char> {
         let ch = self.chars.next()?;
         self.prev = ch;
+        self.consumed += 1;
         Some(ch)
     }
 
     #[cfg(not(debug_assertions))]
     pub fn pop(&mut self) -> Option<char> {
-        self.chars.next()
+        let ch = self.chars.next()?;
+        self.consumed += 1;
+        Some(ch)
     }
 
-    pub fn pop_while(&mut self, mut predicate: impl FnMut(char) -> bool) {
-        while predicate(self.peek()) && !self.is_empty() {
-            self.pop();
-        }
+    pub fn start(&mut self) {
+        self.marker = self.consumed;
     }
 
-    pub fn consumed(&mut self) -> usize {
-        let rv = self.remaining - self.chars.as_str().len();
-        self.remaining = self.chars.as_str().len();
-        rv
+    pub fn spans(&mut self) -> (usize, usize) {
+        (self.marker, self.consumed)
     }
 }
