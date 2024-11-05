@@ -9,8 +9,26 @@ mod ty {
     pub struct Ty;
 }
 
+pub enum Ty {
+    Name(Spanned<String>),
+    Array {
+        base: Box<Ty>,
+        size: u32,
+    },
+    Reference {
+        base: Box<Ty>,
+        mutability: Mutability,
+    }
+}
+
+// ast::Ty is the syntactic representation of a type annotation.
+// ty::Ty is the reified representation of a data type.
+
 pub struct Span(usize, usize);
 pub struct Spanned<T>(T, Span);
+
+type UntypedItem = Item<(), UntypedExpression>;
+type TypedItem = Item<ty::Ty, TypedExpression>;
 
 pub enum Item<T, Expr> {
     Function(Function<T, Expr>),
@@ -57,19 +75,6 @@ pub struct Argument<T> {
     label: Option<Spanned<String>>,
     ty: T,
 }
-
-pub enum Ty {
-    Name(Spanned<String>),
-    Array {
-        base: Box<Ty>,
-        size: u32,
-    },
-    Reference {
-        base: Box<Ty>,
-        mutability: Mutability,
-    }
-}
-
 
 pub enum Statement<T, Expr> {
     Expression(Expr),

@@ -15,7 +15,7 @@ impl ExpressionData<Typed> for Typed {
     type Array = ty::Ty;
     type Assign = ();  // Always ()
     type Call = ty::Ty;
-    type FieldAccess = ty::Ty;
+    type FieldAccess = ty::Ty;  // Gleam doesn't have this in their typed AST for some reason
     type Binary = ty::Ty;
     type Unary = ty::Ty;
     type Propagate = ty::Ty;

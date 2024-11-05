@@ -80,7 +80,6 @@ pub enum ExpressionKind<P> where P: ExpressionData<P> {
         extra: P::Call,
     },
 
-    // Gleam doesn't have this in their typed AST for some reason
     FieldAccess {
         field_span: Span,
         field: Spanned<String>,
@@ -119,16 +118,13 @@ pub enum ExpressionKind<P> where P: ExpressionData<P> {
         extra: P::For,
     },
 
-    // Has type !
     Continue(P::Continue),
 
-    // Has type !
     Break {
         expr: Option<Box<Expression<P>>>,
         extra: P::Break,
     },
 
-    // Has type !
     Return {
         expr: Option<Box<Expression<P>>>,
         extra: P::Return,
