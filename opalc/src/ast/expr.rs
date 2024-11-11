@@ -6,6 +6,7 @@ pub trait ExpressionData<Phase> {
     type String;
     type Character;
     type Name;
+    type Bool;
     type Block;
     type Array;
     type Assign;
@@ -21,17 +22,32 @@ pub trait ExpressionData<Phase> {
     type Return;
 
     type BlockBody;
+    type ArgumentKind;
 
     type Other;
 }
 
-pub struct Expression<P> where P: ExpressionData<P> {
+pub struct Expression<P>
+where
+    P: ExpressionData<P>,
+{
     span: Span,
-    kidn: ExpressionKind<P>,
+    kind: ExpressionKind<P>,
 }
 
+impl<P> Expression<P>
+where
+    P: ExpressionData<P>,
+{
+    pub fn new(span: Span, kind: ExpressionKind<P>) -> Self {
+        Self { span, kind }
+    }
+}
 
-pub enum ExpressionKind<P> where P: ExpressionData<P> {
+pub enum ExpressionKind<P>
+where
+    P: ExpressionData<P>,
+{
     Grouped {
         expr: Box<Expression<P>>,
         extra: P::Grouped,
@@ -44,17 +60,23 @@ pub enum ExpressionKind<P> where P: ExpressionData<P> {
 
     String {
         data: String,
-        extra: P::String
+        extra: P::String,
     },
 
     Character {
         data: char,
-        extra: P::Character
+        extra: P::Character,
     },
 
+    // TODO: Should be a Path
     Name {
         name: String,
         extra: P::Name,
+    },
+
+    Bool {
+        data: bool,
+        extra: P::Bool,
     },
 
     Block {
@@ -76,7 +98,7 @@ pub enum ExpressionKind<P> where P: ExpressionData<P> {
 
     Call {
         function: Box<Expression<P>>,
-        arguments: Vec<Argument<Expression<P>>>,
+        arguments: Vec<P::ArgumentKind>,
         extra: P::Call,
     },
 
@@ -107,7 +129,7 @@ pub enum ExpressionKind<P> where P: ExpressionData<P> {
 
     Case {
         subjects: Box<Expression<P>>,
-        clauses: Vec<Clause>,
+        clauses: Vec<Arm<Expression<P>>>,
         extra: P::Case,
     },
 
@@ -120,10 +142,7 @@ pub enum ExpressionKind<P> where P: ExpressionData<P> {
 
     Continue(P::Continue),
 
-    Break {
-        expr: Option<Box<Expression<P>>>,
-        extra: P::Break,
-    },
+    Break(P::Break),
 
     Return {
         expr: Option<Box<Expression<P>>>,

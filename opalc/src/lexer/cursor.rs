@@ -3,14 +3,13 @@ use std::str::Chars;
 pub const EOF: char = '\0';
 
 pub struct Cursor<'a> {
-    consumed: usize,  // Number of characters consumed
-    marker: usize,  // An arbitrary position marker set by caller as needed
+    consumed: usize, // Number of characters consumed
+    marker: usize,   // An arbitrary position marker set by caller as needed
 
     chars: Chars<'a>,
     #[cfg(debug_assertions)]
     pub prev: char,
 }
-
 
 impl<'a> Cursor<'a> {
     pub fn new(input: &'a str) -> Cursor<'a> {
@@ -23,7 +22,7 @@ impl<'a> Cursor<'a> {
         }
     }
 
-    pub fn peek(&self) ->  char {
+    pub fn peek(&self) -> char {
         self.chars.clone().next().unwrap_or(EOF)
     }
 

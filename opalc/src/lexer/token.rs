@@ -8,7 +8,7 @@ pub enum IntegerBase {
 #[derive(PartialEq, Debug)]
 pub enum Token {
     Name(String),
-    IntLit {value: usize, base: IntegerBase},
+    IntLit(u32, IntegerBase),
     StringLit(String),
     CharLit(char),
 
@@ -44,20 +44,33 @@ pub enum Token {
     Dot,
     RArrow,
 
-    // TODO: Add other assignment operators.
+    U8,
+    U16,
+    U32,
+    I8,
+    I16,
+    I32,
+    Char,
+    Str,
+    Bool,
+    True,
+    False,
 
+    // TODO: Add other assignment operators.
     Use,
     As,
-    
+
     Fn,
     Const,
     Let,
     Mut,
     Anon,
     Type,
-    
+    Static,
+
     Case,
     For,
+    In,
     Break,
     Continue,
     Return,

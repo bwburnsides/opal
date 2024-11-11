@@ -1,13 +1,14 @@
 pub mod cursor;
 pub mod token;
 
-use cursor::*;
-use token::*;
+pub use cursor::*;
+pub use token::IntegerBase::*;
+pub use token::*;
+
 use token::Token::*;
-use token::IntegerBase::*;
 
 #[derive(PartialEq, Debug)]
-struct Spanned<T> {
+pub struct Spanned<T> {
     item: T,
     start: usize,
     stop: usize,
@@ -15,19 +16,27 @@ struct Spanned<T> {
 
 impl<T> Spanned<T> {
     pub fn new(item: T, start: usize, stop: usize) -> Self {
-        Self {item, start, stop}
+        Self { item, start, stop }
     }
 
     pub fn from_pair(item: T, pair: (usize, usize)) -> Self {
-        Self {item, start: pair.0, stop: pair.1}
+        Self {
+            item,
+            start: pair.0,
+            stop: pair.1,
+        }
     }
 }
 
 pub fn tokenize(input: &str) -> impl Iterator<Item = Spanned<Token>> + '_ {
-    let mut cursor =  Cursor::new(input);
+    let mut cursor = Cursor::new(input);
     std::iter::from_fn(move || {
         let token = cursor.token();
-        if token.item != EndOfFile { Some(token) } else { None }
+        if token.item != EndOfFile {
+            Some(token)
+        } else {
+            None
+        }
     })
 }
 
@@ -48,7 +57,7 @@ impl Cursor<'_> {
             '#' => {
                 self.skip_comment();
                 return self.token();
-            },
+            }
             '(' => LeftParen,
             ')' => RightParen,
             '[' => LeftSquare,
@@ -60,7 +69,7 @@ impl Cursor<'_> {
                 '>' => {
                     self.pop();
                     RArrow
-                },
+                }
                 _ => Minus,
             },
             '*' => Star,
@@ -69,23 +78,23 @@ impl Cursor<'_> {
                 '<' => {
                     self.pop();
                     LtLt
-                },
+                }
                 '=' => {
                     self.pop();
                     LessEqual
-                },
+                }
                 _ => Less,
-            }
+            },
             '>' => match self.peek() {
                 '>' => {
                     self.pop();
                     GtGt
-                },
+                }
                 '=' => {
                     self.pop();
                     GreaterEqual
-                },
-                _ => Greater
+                }
+                _ => Greater,
             },
             ':' => Colon,
             ',' => Comma,
@@ -93,30 +102,30 @@ impl Cursor<'_> {
                 '=' => {
                     self.pop();
                     NotEqual
-                },
-                _ => Bang
+                }
+                _ => Bang,
             },
             '?' => Question,
             '=' => match self.peek() {
                 '=' => {
                     self.pop();
                     EqualEqual
-                },
-                _ => Equal
+                }
+                _ => Equal,
             },
             '|' => match self.peek() {
                 '|' => {
                     self.pop();
                     BarBar
-                },
-                _ => Bar
+                }
+                _ => Bar,
             },
             '&' => match self.peek() {
                 '&' => {
                     self.pop();
                     AmperAmper
-                },
-                _ => Amper
+                }
+                _ => Amper,
             },
             '.' => Dot,
             '\n' => NewLine,
@@ -135,17 +144,17 @@ impl Cursor<'_> {
                 'b' => todo!("bin"),
                 'x' => todo!("hex"),
                 '0'..='9' => todo!("Multi-digit integer literal cannot start with 0"),
-                _ => IntLit { value: 0, base: Dec }
+                _ => IntLit(0, Dec),
             },
-            _ => todo!("dec base")
+            _ => todo!("dec base"),
         }
     }
 
     fn word(&mut self, _first: char) -> Token {
         debug_assert!(
-            ('a' <= self.prev && self.prev <= 'z') ||
-            ('A' <= self.prev && self.prev <= 'Z') ||
-            (self.prev == '_')
+            ('a' <= self.prev && self.prev <= 'z')
+                || ('A' <= self.prev && self.prev <= 'Z')
+                || (self.prev == '_')
         );
 
         let mut data = String::new();
@@ -153,6 +162,17 @@ impl Cursor<'_> {
             match self.peek() {
                 ch @ ('a'..='z' | 'A'..='Z' | '0'..='9' | '_') => data.push(ch),
                 _ => match data.as_str() {
+                    "u8" => break U8,
+                    "u16" => break U16,
+                    "u32" => break U32,
+                    "i8" => break I8,
+                    "i16" => break I16,
+                    "i32" => break I32,
+                    "char" => break Char,
+                    "str" => break Str,
+                    "bool" => break Bool,
+                    "true" => break True,
+                    "false" => break False,
                     "use" => break Use,
                     "as" => break As,
                     "fn" => break Fn,
@@ -163,11 +183,12 @@ impl Cursor<'_> {
                     "type" => break Type,
                     "case" => break Case,
                     "for" => break For,
+                    "in" => break In,
                     "break" => break Break,
                     "continue" => break Continue,
                     "return" => break Return,
                     _ => break Name(data),
-                }
+                },
             }
         }
     }
@@ -194,7 +215,7 @@ impl Cursor<'_> {
 
         match end {
             '\'' => CharLit(data),
-            _ => todo!("Expected terminator, got data")
+            _ => todo!("Expected terminator, got data"),
         }
     }
 
@@ -205,9 +226,9 @@ impl Cursor<'_> {
 
     fn skip_comment(&mut self) {
         match self.pop() {
-            None => return,
-            Some('\n') => return,
-            Some(_) => {},
+            None => {}
+            Some('\n') => {}
+            Some(_) => {}
         }
     }
 }
@@ -222,7 +243,7 @@ enum Digit {
     Six = 6,
     Seven = 7,
     Eight = 8,
-    Nine = 9
+    Nine = 9,
 }
 
 impl TryFrom<char> for Digit {
@@ -240,7 +261,7 @@ impl TryFrom<char> for Digit {
             '7' => Ok(Self::Seven),
             '8' => Ok(Self::Eight),
             '9' => Ok(Self::Nine),
-            _ => Err(())
+            _ => Err(()),
         }
     }
 }

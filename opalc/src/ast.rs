@@ -1,9 +1,13 @@
 mod expr;
-mod untyped;
+mod model_impls;
 mod typed;
+mod untyped;
 
-use untyped::UntypedExpression;
-use typed::TypedExpression;
+pub use expr::*;
+pub use typed::*;
+pub use untyped::*;
+
+use crate::span::*;
 
 mod ty {
     pub struct Ty;
@@ -18,31 +22,24 @@ pub enum Ty {
     Reference {
         base: Box<Ty>,
         mutability: Mutability,
-    }
+    },
+    Group(Box<Ty>),
+    Unit,
+    Never,
 }
 
 // ast::Ty is the syntactic representation of a type annotation.
 // ty::Ty is the reified representation of a data type.
 
-pub struct Span(usize, usize);
-pub struct Spanned<T>(T, Span);
-
-type UntypedItem = Item<(), UntypedExpression>;
-type TypedItem = Item<ty::Ty, TypedExpression>;
+pub type UntypedItem = Item<(), UntypedExpression>;
+pub type TypedItem = Item<ty::Ty, TypedExpression>;
 
 pub enum Item<T, Expr> {
     Function(Function<T, Expr>),
     TypeAlias(TypeAlias<T>),
     DataType(AlgebraicType<T>),
     Constant(Constant<T, Expr>),
-    Static {
-        span: Span,
-        name: Spanned<String>,
-        annotation: Ty,
-        initializer: Option<Expr>,
-        mutability: Mutability,
-        ty: T,
-    }
+    Static(Static<T, Expr>),
 }
 
 pub struct TypeAlias<T> {
@@ -61,32 +58,44 @@ pub struct Function<T, Expr> {
     return_ty: T,
 }
 
+pub type UntypedFunction = Function<(), UntypedExpression>;
+pub type TypedFunction = Function<ty::Ty, TypedExpression>;
+
 pub struct Parameter<T> {
     span: Span,
     name: Spanned<String>,
     annotation: Ty,
     anonymity: Anonymity,
+    mutability: Mutability,
     ty: T,
 }
 
-pub struct Argument<T> {
+pub type UntypedParameter = Parameter<()>;
+pub type TypedParameter = Parameter<ty::Ty>;
+
+pub struct Argument<T, Expr> {
     span: Span,
-    name: Spanned<String>,
     label: Option<Spanned<String>>,
+    value: Expr,
     ty: T,
 }
+
+pub type UntypedArgument = Argument<(), UntypedExpression>;
+pub type TypedArgument = Argument<ty::Ty, TypedExpression>;
 
 pub enum Statement<T, Expr> {
     Expression(Expr),
     Constant(Constant<T, Expr>),
-    Let {
-        span: Span,
-        name: Spanned<String>,
-        annotation: Option<Ty>,
-        initializer: Option<Expr>,
-        mutability: Mutability,
-        ty: T,
-    },
+    Let(Let<T, Expr>),
+}
+
+pub struct Let<T, Expr> {
+    span: Span,
+    name: Spanned<String>,
+    annotation: Option<Ty>,
+    initializer: Option<Expr>,
+    mutability: Mutability,
+    ty: T,
 }
 
 pub type UntypedStatement = Statement<(), UntypedExpression>;
@@ -96,6 +105,7 @@ pub struct AlgebraicType<T> {
     span: Span,
     name: Spanned<String>,
     kind: AlgebraicTypeKind<T>,
+    ty: T,
 }
 
 pub enum AlgebraicTypeKind<T> {
@@ -114,14 +124,46 @@ pub enum Variant<T> {
     Record {
         name: Spanned<String>,
         fields: Vec<Field<T>>,
-    }
+    },
 }
+
+pub type UntypedVariant = Variant<()>;
+pub type TypedVariant = Variant<ty::Ty>;
 
 pub struct Field<T> {
     span: Span,
     name: Spanned<String>,
     annotation: Ty,
     ty: T,
+}
+
+pub type UntypedField = Field<()>;
+pub type TypedField = Field<ty::Ty>;
+
+pub struct Arm<Expr> {
+    pattern: Pattern,
+    expression: Expr,
+    // TODO: Might want a ty: T here but then I'll need to uphold
+    // ty == expression.type
+}
+
+pub type UntypedArm = Arm<UntypedExpression>;
+pub type TypedArm = Arm<TypedExpression>;
+
+// TODO: Does Pattern need a type field like expressions?
+// Not exactly sure how patterns work yet.
+pub enum Pattern {
+    Bool(bool),
+    Char(char),
+    String(String),
+    Integer(u32),
+    Name(String),
+    Wildcard,
+    Path(Vec<String>),
+    Struct(String, Vec<(String, String)>),
+    Tuple(Vec<Pattern>),
+    Enum(String, Vec<String>),
+    Grouped(Box<Pattern>),
 }
 
 pub struct Constant<T, Expr> {
@@ -131,6 +173,20 @@ pub struct Constant<T, Expr> {
     initializer: Expr,
     ty: T,
 }
+
+pub type UntypedConstant = Constant<(), UntypedExpression>;
+pub type TypedConstant = Constant<ty::Ty, TypedExpression>;
+
+pub struct Static<T, Expr> {
+    span: Span,
+    name: Spanned<String>,
+    annotation: Ty,
+    initializer: Expr,
+    ty: T,
+}
+
+pub type UntypedStatic = Static<(), UntypedExpression>;
+pub type TypedStatic = Static<ty::Ty, TypedExpression>;
 
 pub enum Mutability {
     Mutable,
@@ -142,6 +198,5 @@ pub enum Anonymity {
     Named,
 }
 
-struct Clause;
-struct BinaryOperator;
-struct UnaryOperator;
+pub struct BinaryOperator;
+pub struct UnaryOperator;

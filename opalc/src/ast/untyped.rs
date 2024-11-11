@@ -1,7 +1,6 @@
-use std::convert::Infallible;
-
-use super::*;
-use expr::*;
+use crate::ast::expr::{Expression, ExpressionData};
+use crate::ast::{UntypedArgument, UntypedStatement};
+use crate::error::ParseError;
 
 pub struct Untyped;
 
@@ -11,6 +10,7 @@ impl ExpressionData<Untyped> for Untyped {
     type String = ();
     type Character = ();
     type Name = ();
+    type Bool = ();
     type Block = ();
     type Array = ();
     type Assign = ();
@@ -26,8 +26,9 @@ impl ExpressionData<Untyped> for Untyped {
     type Return = ();
 
     type BlockBody = UntypedStatement;
+    type ArgumentKind = UntypedArgument;
 
-    type Other = Infallible;
+    type Other = ParseError;
 }
 
 pub type UntypedExpression = Expression<Untyped>;

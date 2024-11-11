@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 
-mod lexer;
 mod ast;
+mod error;
+mod lexer;
+mod parser;
+mod span;
 
 fn main() {
     // let token_iter = lexer::tokenize("foo bar baz!");
