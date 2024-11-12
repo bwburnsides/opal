@@ -9,8 +9,8 @@ use pat::PatternPrecedence;
 use crate::ast::*;
 use crate::lexer::*;
 use crate::parser::expr::{parse_expression, OperatorPrecedence};
-use crate::span::*;
 use crate::parser::stream::TokenStream;
+use crate::span::*;
 
 impl TokenStream {
     pub fn expect(&mut self, token: Token) -> Result<Token, ()> {
@@ -329,6 +329,11 @@ fn parse_variant(tokens: &mut TokenStream) -> Result<UntypedVariant, ()> {
     }
 }
 
+fn parse_arms(_tokens: &mut TokenStream) -> Result<Vec<UntypedArm>, ()> {
+    // Zero or more arms separated by commas
+    todo!()
+}
+
 fn parse_arm(tokens: &mut TokenStream) -> Result<UntypedArm, ()> {
     let pat = parse_pattern(PatternPrecedence::Mininum, tokens)?;
     tokens.expect(Token::RArrow)?;
@@ -336,32 +341,32 @@ fn parse_arm(tokens: &mut TokenStream) -> Result<UntypedArm, ()> {
     Ok(UntypedArm::new(pat, expr))
 }
 
-fn parse_argument(tokens: &mut TokenStream) -> Result<UntypedArgument, ()> {
+fn parse_argument(_tokens: &mut TokenStream) -> Result<UntypedArgument, ()> {
     // [name: ] expr
-    match tokens.pop() {
-        Token::Name(name) => {
-            match tokens.peek() {
-                Token::Colon => {
-                    tokens.pop();
-                    let arg = parse_expression(OperatorPrecedence::Minimum, tokens)?;
-                    Ok(Argument::new(
-                        Span(0, 0),
-                        Some(Spanned(name, Span(0, 0))),
-                        arg,
-                        (),
-                    ))
-                }
-                _ => Ok(Argument::new(
-                    Span(0, 0),
-                    None,
-                    Expression::new(Span(0, 0), ExpressionKind::Name { name, extra: () }),
-                    (),
-                )),
-            }
-        }
-        _ => {
-            let arg = parse_expression(OperatorPrecedence::Minimum, tokens)?;
-            Ok(Argument::new(Span(0, 0), None, arg, ()))
-        }
-    }
+    todo!("Rewrite this now that paths are in place lol")
+
+    // match tokens.pop() {
+    //     Token::Name(name) => match tokens.peek() {
+    //         Token::Colon => {
+    //             tokens.pop();
+    //             let arg = parse_expression(OperatorPrecedence::Minimum, tokens)?;
+    //             Ok(Argument::new(
+    //                 Span(0, 0),
+    //                 Some(Spanned(name, Span(0, 0))),
+    //                 arg,
+    //                 (),
+    //             ))
+    //         }
+    //         _ => Ok(Argument::new(
+    //             Span(0, 0),
+    //             None,
+    //             Expression::new(Span(0, 0), ExpressionKind::Name { name, extra: () }),
+    //             (),
+    //         )),
+    //     },
+    //     _ => {
+    //         let arg = parse_expression(OperatorPrecedence::Minimum, tokens)?;
+    //         Ok(Argument::new(Span(0, 0), None, arg, ()))
+    //     }
+    // }
 }

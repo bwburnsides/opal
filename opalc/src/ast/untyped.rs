@@ -9,7 +9,7 @@ impl ExpressionData<Untyped> for Untyped {
     type Integer = ();
     type String = ();
     type Character = ();
-    type Name = ();
+    type Path = ();
     type Bool = ();
     type Block = ();
     type Array = ();

@@ -5,34 +5,14 @@ pub use cursor::*;
 pub use token::IntegerBase::*;
 pub use token::*;
 
+use crate::span::Spanned;
 use token::Token::*;
-
-#[derive(PartialEq, Debug)]
-pub struct Spanned<T> {
-    item: T,
-    start: usize,
-    stop: usize,
-}
-
-impl<T> Spanned<T> {
-    pub fn new(item: T, start: usize, stop: usize) -> Self {
-        Self { item, start, stop }
-    }
-
-    pub fn from_pair(item: T, pair: (usize, usize)) -> Self {
-        Self {
-            item,
-            start: pair.0,
-            stop: pair.1,
-        }
-    }
-}
 
 pub fn tokenize(input: &str) -> impl Iterator<Item = Spanned<Token>> + '_ {
     let mut cursor = Cursor::new(input);
     std::iter::from_fn(move || {
         let token = cursor.token();
-        if token.item != EndOfFile {
+        if token.0 != EndOfFile {
             Some(token)
         } else {
             None
@@ -64,16 +44,38 @@ impl Cursor<'_> {
             ']' => RightSquare,
             '{' => LeftBrace,
             '}' => RightBrace,
-            '+' => Plus,
+            '+' => match self.peek() {
+                '=' => {
+                    self.pop();
+                    PlusEqual
+                }
+                _ => Plus,
+            },
             '-' => match self.peek() {
+                '=' => {
+                    self.pop();
+                    MinusEqual
+                }
                 '>' => {
                     self.pop();
                     RArrow
                 }
                 _ => Minus,
             },
-            '*' => Star,
-            '/' => Slash,
+            '*' => match self.peek() {
+                '=' => {
+                    self.pop();
+                    StarEqual
+                }
+                _ => Star,
+            },
+            '/' => match self.peek() {
+                '=' => {
+                    self.pop();
+                    SlashEqual
+                }
+                _ => Slash,
+            },
             '<' => match self.peek() {
                 '<' => {
                     self.pop();
@@ -96,7 +98,13 @@ impl Cursor<'_> {
                 }
                 _ => Greater,
             },
-            ':' => Colon,
+            ':' => match self.peek() {
+                ':' => {
+                    self.pop();
+                    ColonColon
+                }
+                _ => Colon,
+            },
             ',' => Comma,
             '!' => match self.peek() {
                 '=' => {

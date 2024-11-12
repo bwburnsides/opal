@@ -198,5 +198,17 @@ pub enum Anonymity {
     Named,
 }
 
-pub struct BinaryOperator;
-pub struct UnaryOperator;
+pub enum BinaryOperator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+}
+
+pub enum UnaryOperator {
+    Posit,
+    Negate,
+    Dereference,
+    Borrow,
+    Invert,
+}

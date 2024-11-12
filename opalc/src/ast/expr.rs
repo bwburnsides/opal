@@ -5,7 +5,7 @@ pub trait ExpressionData<Phase> {
     type Integer;
     type String;
     type Character;
-    type Name;
+    type Path;
     type Bool;
     type Block;
     type Array;
@@ -68,10 +68,12 @@ where
         extra: P::Character,
     },
 
-    // TODO: Should be a Path
-    Name {
-        name: String,
-        extra: P::Name,
+    Path {
+        // TODO: Eventually these will become PathSegments
+        // to facilitate generic arguments per-segment.
+        is_root: bool,
+        segments: Vec<Spanned<String>>,
+        extra: P::Path,
     },
 
     Bool {

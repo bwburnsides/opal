@@ -10,7 +10,7 @@ impl ExpressionData<Typed> for Typed {
     type Integer = ty::Ty;
     type String = ();
     type Character = ();
-    type Name = ty::Ty;
+    type Path = ty::Ty;
     type Bool = ();
     type Block = (); // Get type from last value in Vec
     type Array = ty::Ty;

@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::lexer::Token;
 use crate::span::*;
 
 impl<T> TypeAlias<T> {
@@ -146,6 +147,23 @@ impl<T, Expr> Let<T, Expr> {
             initializer,
             mutability,
             ty,
+        }
+    }
+}
+
+impl TryFrom<Token> for UnaryOperator {
+    type Error = ();
+
+    fn try_from(value: Token) -> Result<Self, Self::Error> {
+        use Token::*;
+
+        match value {
+            Plus => Ok(Self::Posit),
+            Minus => Ok(Self::Negate),
+            Star => Ok(Self::Dereference),
+            Amper => Ok(Self::Borrow),
+            Bang => Ok(Self::Invert),
+            _ => Err(()),
         }
     }
 }

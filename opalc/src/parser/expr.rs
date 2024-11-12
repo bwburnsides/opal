@@ -1,8 +1,8 @@
-use crate::ast::{ExpressionKind, UntypedExpression};
+use crate::ast::{ExpressionKind, UnaryOperator, UntypedExpression};
 use crate::lexer::Token;
 
 use crate::parser::precedence::Precedence;
-use crate::parser::{parse_block, TokenStream};
+use crate::parser::{parse_arms, parse_block, TokenStream};
 use crate::span::{Span, Spanned};
 
 impl Precedence<OperatorPrecedence> for TokenStream {
@@ -67,10 +67,46 @@ fn parse_prefix(tokens: &mut TokenStream) -> Result<UntypedExpression, ()> {
                 extra: (),
             },
         )),
-        Name(name) => Ok(UntypedExpression::new(
-            Span(0, 0),
-            ExpressionKind::Name { name, extra: () },
-        )),
+        Name(name) => {
+            let mut segments = vec![Spanned(name, Span(0, 0))];
+
+            loop {
+                if tokens.did_pop(ColonColon) {
+                    segments.push(Spanned(tokens.expect_name()?, Span(0, 0)));
+                } else {
+                    break;
+                }
+            }
+
+            Ok(UntypedExpression::new(
+                Span(0, 0),
+                ExpressionKind::Path {
+                    is_root: false,
+                    segments,
+                    extra: (),
+                },
+            ))
+        }
+        ColonColon => {
+            let mut segments = vec![Spanned(tokens.expect_name()?, Span(0, 0))];
+
+            loop {
+                if tokens.did_pop(ColonColon) {
+                    segments.push(Spanned(tokens.expect_name()?, Span(0, 0)));
+                } else {
+                    break;
+                }
+            }
+
+            Ok(UntypedExpression::new(
+                Span(0, 0),
+                ExpressionKind::Path {
+                    is_root: true,
+                    segments,
+                    extra: (),
+                },
+            ))
+        }
         True => Ok(UntypedExpression::new(
             Span(0, 0),
             ExpressionKind::Bool {
@@ -87,17 +123,16 @@ fn parse_prefix(tokens: &mut TokenStream) -> Result<UntypedExpression, ()> {
         )),
         LeftBrace => todo!("Block"),
         LeftSquare => todo!("Array"),
-        Plus | Minus | Star | Amper | Bang => todo!("Unary"),
         Case => {
-            let _scrutinee = parse_expression(OperatorPrecedence::Minimum, tokens)?;
+            let scrutinee = parse_expression(OperatorPrecedence::Minimum, tokens)?;
             tokens.expect(LeftBrace)?;
-            let _arms = todo!("Parse arms");
+            let arms = parse_arms(tokens)?;
             tokens.expect(RightBrace)?;
             Ok(UntypedExpression::new(
                 Span(0, 0),
                 ExpressionKind::Case {
-                    subjects: Box::new(_scrutinee),
-                    clauses: _arms,
+                    subjects: Box::new(scrutinee),
+                    clauses: arms,
                     extra: (),
                 },
             ))
@@ -133,6 +168,7 @@ fn parse_prefix(tokens: &mut TokenStream) -> Result<UntypedExpression, ()> {
                 | StringLit(_)
                 | CharLit(_)
                 | Name(_)
+                | ColonColon
                 | True
                 | False
                 | LeftBrace
@@ -158,8 +194,14 @@ fn parse_prefix(tokens: &mut TokenStream) -> Result<UntypedExpression, ()> {
                 ExpressionKind::Return { expr, extra: () },
             ))
         }
-
-        _ => Err(()),
+        op => Ok(UntypedExpression::new(
+            Span(0, 0),
+            ExpressionKind::Unary {
+                operator: UnaryOperator::try_from(op)?,
+                expr: Box::new(parse_expression(OperatorPrecedence::Minimum, tokens)?),
+                extra: (),
+            },
+        )),
     }
 }
 

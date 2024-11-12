@@ -29,6 +29,7 @@ pub enum Token {
     GreaterEqual,
 
     Colon,
+    ColonColon,
     Comma,
     Bang,
     Question,
@@ -56,7 +57,11 @@ pub enum Token {
     True,
     False,
 
-    // TODO: Add other assignment operators.
+    PlusEqual,
+    MinusEqual,
+    StarEqual,
+    SlashEqual,
+
     Use,
     As,
 

@@ -14,8 +14,8 @@ pub enum PatternPrecedence {
 }
 
 pub fn parse_pattern(
-    precedence: PatternPrecedence,
-    tokens: &mut TokenStream,
+    _precedence: PatternPrecedence,
+    _tokens: &mut TokenStream,
 ) -> Result<Pattern, ()> {
     todo!()
 }
